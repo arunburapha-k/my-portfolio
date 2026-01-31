@@ -496,7 +496,7 @@ export default function ResumeApp() {
             <span className="h-px bg-slate-800 flex-grow"></span>
           </h2>
           <div className="p-8 border border-slate-800 bg-slate-900/30 rounded-xl">
-             <p className="text-lg leading-relaxed text-slate-300 font-light">{t.about}</p>
+             <p className="text-lg leading-relaxed text-slate-600 font-light">{t.about}</p>
           </div>
         </section>
 
@@ -554,8 +554,8 @@ export default function ResumeApp() {
                        </span>
                     ))}
                   </div>
-                  <p className="text-sm text-slate-400 mb-4 flex-grow font-light">{project.description}</p>
-                  <button className="w-full py-2 border border-slate-700 hover:bg-emerald-500/10 hover:border-emerald-500 hover:text-emerald-400 text-slate-400 text-xs font-mono transition-all flex justify-center items-center gap-2">
+                  <p className="text-sm text-slate-100 mb-4 flex-grow font-light">{project.description}</p>
+                  <button className="w-full py-2 border border-slate-700 hover:bg-emerald-500/10 hover:border-emerald-500 hover:text-emerald-400 text-slate-100 text-xs font-mono transition-all flex justify-center items-center gap-2">
                     VIEW SPECS <BsArrowRight />
                   </button>
                 </div>
@@ -580,10 +580,10 @@ export default function ResumeApp() {
                        <span className="font-mono text-xs text-emerald-400 border border-emerald-900 bg-emerald-900/20 px-2 py-1">{edu.year}</span>
                     </div>
                     <p className="text-cyan-500 mb-4">{edu.degree} - {edu.field}</p>
-                    <div className="grid md:grid-cols-2 gap-2 text-sm text-slate-400">
+                    <div className="grid md:grid-cols-2 gap-2 text-sm text-slate-100">
                       {edu.courses.map((c, cIdx) => (
                         <div key={cIdx} className="flex items-center gap-2">
-                          <span className="text-slate-600 text-xs">►</span> {c}
+                          <span className="text-slate-300 text-xs">►</span> {c}
                         </div>
                       ))}
                     </div>
@@ -608,7 +608,7 @@ export default function ResumeApp() {
                <div className="inline-block px-3 py-1 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-900 font-bold rounded text-sm mb-6">
                  {t.period}
                </div>
-               <p className="text-slate-300 mb-8 max-w-2xl">{t.description}</p>
+               <p className="text-slate-100 mb-8 max-w-2xl">{t.description}</p>
                <h4 className="font-mono text-sm text-slate-500 uppercase mb-4">{t.whatIBring}</h4>
                <div className="grid md:grid-cols-2 gap-4">
                  {t.achievements.map((item, i) => (
@@ -635,7 +635,7 @@ export default function ResumeApp() {
                   {hobbyIcons[index]}
                 </div>
                 <h3 className="text-xl font-bold font-mono text-white mb-4 text-cyan-400">{hobby.title}</h3>
-                <p className="text-slate-400 leading-relaxed text-sm">{hobby.desc}</p>
+                <p className="text-slate-100 leading-relaxed text-sm">{hobby.desc}</p>
               </SpotlightCard>
             ))}
           </div>
