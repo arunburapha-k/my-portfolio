@@ -33,43 +33,34 @@ function storageSet(key, value) {
   } catch { /* ignore */ }
 }
 
-// --- NEW COMPONENT: TACTICAL CURSOR (เป้าเล็งติดตามเมาส์) ---
+// --- NEW COMPONENT: TACTICAL CURSOR (Fixed: Position Bug) ---
 const TacticalCursor = ({ darkMode }) => {
-  const cursorRef = useRef(null); // ตัวเป้าเล็ง (ตามช้าๆ)
-  const dotRef = useRef(null);    // จุดกลาง (ตามทันที)
-  const [isHovering, setIsHovering] = useState(false);
+  const cursorRef = useRef(null);
+  const dotRef = useRef(null);
+  const hoveredElementRef = useRef(null);
   const [isClicking, setIsClicking] = useState(false);
 
-  // ตำแหน่งเมาส์และเป้าเล็ง
-  const mouse = useRef({ x: -100, y: -100 }); // เริ่มนอกจอ
-  const cursor = useRef({ x: -100, y: -100 });
+  // Initial State off-screen
+  const mouse = useRef({ x: -100, y: -100 });
+  const cursor = useRef({ x: -100, y: -100, w: 32, h: 32 });
 
   useEffect(() => {
-    // 1. ตรวจจับการขยับเมาส์
+    // 1. Mouse Move
     const onMouseMove = (e) => {
-      mouse.current = { x: e.clientX, y: e.clientY };
-      // ย้ายจุดกลางทันที (Instant)
+      mouse.current.x = e.clientX;
+      mouse.current.y = e.clientY;
+      
+      // Dot moves instantly
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
       }
     };
 
-    // 2. ตรวจจับการ Hover องค์ประกอบที่คลิกได้
+    // 2. Mouse Over (Target Detection)
     const onMouseOver = (e) => {
       const target = e.target;
-      // เช็คว่าเมาส์ชี้ไปโดนปุ่ม, ลิ้งค์ หรือ input หรือไม่
-      if (
-        target.tagName === 'BUTTON' || 
-        target.tagName === 'A' || 
-        target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.closest('button') || 
-        target.closest('a')
-      ) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
+      const interactable = target.closest('button, a, input, textarea, .magnet-target');
+      hoveredElementRef.current = interactable;
     };
 
     const onMouseDown = () => setIsClicking(true);
@@ -80,17 +71,54 @@ const TacticalCursor = ({ darkMode }) => {
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
 
-    // 3. Animation Loop (Lerp Physics)
+    // 3. Animation Loop (Smooth Physics)
     let animationFrame;
     const animate = () => {
-      // สูตร Linear Interpolation (Lerp) เพื่อให้เป้าเล็งวิ่งตามแบบหน่วงๆ
-      const ease = 0.15;
-      cursor.current.x += (mouse.current.x - cursor.current.x) * ease;
-      cursor.current.y += (mouse.current.y - cursor.current.y) * ease;
+      let targetX, targetY, targetW, targetH, targetRadius;
+      const ease = 0.2; // Increase responsiveness
+
+      if (hoveredElementRef.current) {
+        // --- LOCK MODE ---
+        const rect = hoveredElementRef.current.getBoundingClientRect();
+        const padding = 15; // Padding around the button
+        
+        targetW = rect.width + padding;
+        targetH = rect.height + padding;
+        targetX = rect.left + rect.width / 2;
+        targetY = rect.top + rect.height / 2;
+        targetRadius = "8px"; // Rounded rectangle
+      } else {
+        // --- NORMAL MODE ---
+        targetW = 40;
+        targetH = 40;
+        targetX = mouse.current.x;
+        targetY = mouse.current.y;
+        targetRadius = "50%"; // Circle
+      }
+
+      // Linear Interpolation (Lerp) for smoothness
+      cursor.current.x += (targetX - cursor.current.x) * ease;
+      cursor.current.y += (targetY - cursor.current.y) * ease;
+      cursor.current.w += (targetW - cursor.current.w) * ease;
+      cursor.current.h += (targetH - cursor.current.h) * ease;
 
       if (cursorRef.current) {
-        cursorRef.current.style.transform = `translate3d(${cursor.current.x}px, ${cursor.current.y}px, 0)`;
+        // Apply Transform (Translate + Center Offset)
+        cursorRef.current.style.transform = `translate3d(${cursor.current.x}px, ${cursor.current.y}px, 0) translate(-50%, -50%)`;
+        cursorRef.current.style.width = `${cursor.current.w}px`;
+        cursorRef.current.style.height = `${cursor.current.h}px`;
+        cursorRef.current.style.borderRadius = targetRadius;
+
+        // Toggle Visual Classes based on state
+        if (hoveredElementRef.current) {
+          cursorRef.current.classList.add('cursor-locked');
+          cursorRef.current.classList.remove('cursor-idle');
+        } else {
+          cursorRef.current.classList.remove('cursor-locked');
+          cursorRef.current.classList.add('cursor-idle');
+        }
       }
+
       animationFrame = requestAnimationFrame(animate);
     };
     animate();
@@ -104,44 +132,86 @@ const TacticalCursor = ({ darkMode }) => {
     };
   }, []);
 
-  // สีของ Cursor ตามธีม
   const borderColor = darkMode ? 'border-cyan-400' : 'border-cyan-600';
-  const dotColor = darkMode ? 'bg-cyan-400' : 'bg-cyan-600';
+  const cornerColor = darkMode ? 'border-cyan-200' : 'border-cyan-800';
 
   return (
     <>
-      {/* ซ่อน Cursor ปกติ */}
       <style>{`
         @media (pointer: fine) {
           body, a, button, input, textarea { cursor: none !important; }
         }
+        
+        /* Base Cursor Style */
+        .cursor-frame {
+          position: fixed;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+          z-index: 9999;
+          box-sizing: border-box;
+          will-change: transform, width, height;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          /* Transition specific properties only, NOT transform */
+          transition: border-color 0.2s, background-color 0.2s, border-radius 0.2s; 
+        }
+
+        /* State: Idle (Circle) */
+        .cursor-idle {
+          border: 2px solid ${darkMode ? 'rgba(34, 211, 238, 0.5)' : 'rgba(8, 145, 178, 0.5)'};
+          background-color: transparent;
+        }
+
+        /* State: Locked (Rectangle Frame) */
+        .cursor-locked {
+          border: 1px dashed ${darkMode ? 'rgba(34, 211, 238, 0.3)' : 'rgba(8, 145, 178, 0.3)'};
+          background-color: ${darkMode ? 'rgba(34, 211, 238, 0.05)' : 'rgba(8, 145, 178, 0.05)'};
+        }
+
+        /* Corner Brackets (Visible only when Locked) */
+        .cursor-corner {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-color: ${darkMode ? '#22d3ee' : '#0891b2'};
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .cursor-locked .cursor-corner {
+          opacity: 1;
+        }
+
+        .c-tl { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 2px; }
+        .c-tr { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 2px; }
+        .c-bl { bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 2px; }
+        .c-br { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 2px; }
       `}</style>
 
-      {/* ตัวเป้าเล็ง (Crosshair) */}
+      {/* Main Cursor Frame */}
       <div 
         ref={cursorRef}
-        className={`fixed top-0 left-0 pointer-events-none z-[9999] w-8 h-8 -ml-4 -mt-4 transition-all duration-300 ease-out border-2 rounded-full flex items-center justify-center
-          ${borderColor} bg-transparent
-          ${isHovering ? 'scale-150 rotate-45 border-dashed opacity-80' : 'scale-100 rotate-0 opacity-50'} 
-          ${isClicking ? 'scale-75 duration-100' : ''}
-        `}
+        className={`cursor-frame ${isClicking ? 'scale-95' : 'scale-100'}`}
       >
-        {/* ขีดเล็งตรงกลางเป้า */}
-        <div className={`absolute w-1 h-1 rounded-full opacity-0 transition-opacity ${isHovering ? 'opacity-100' : ''} ${darkMode ? 'bg-white' : 'bg-slate-900'}`}></div>
+        {/* Corners */}
+        <div className="cursor-corner c-tl"></div>
+        <div className="cursor-corner c-tr"></div>
+        <div className="cursor-corner c-bl"></div>
+        <div className="cursor-corner c-br"></div>
       </div>
 
-      {/* จุดกลาง (Center Dot) */}
+      {/* Center Dot (Precision Pointer) */}
       <div 
         ref={dotRef}
-        className={`fixed top-0 left-0 pointer-events-none z-[10000] w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full ${dotColor} shadow-[0_0_10px_rgba(34,211,238,0.8)]`}
+        className={`fixed top-0 left-0 pointer-events-none z-[10000] w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full mix-blend-difference ${darkMode ? 'bg-cyan-400' : 'bg-cyan-600'}`}
       />
     </>
   );
 };
 
-// --- EXISTING COMPONENTS (ScrollReveal, ShinyText, Magnet, PixelBlast, DecryptedText, SpotlightCard) ---
+// --- EXISTING COMPONENTS ---
 
-// ScrollReveal (เวอร์ชันล่าสุดที่มี Logic ไป-กลับ)
 const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -168,7 +238,6 @@ const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   );
 };
 
-// ShinyText (เวอร์ชัน Fixed Visibility)
 const ShinyText = ({ text, disabled = false, speed = 3, className = '' }) => {
   const animationDuration = `${speed}s`;
   return (
@@ -221,7 +290,7 @@ const Magnet = ({ children, padding = 20, disabled = false, magnetStrength = 20 
   }, []);
 
   return (
-    <div ref={ref} onMouseLeave={handleMouseLeave} style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, transition: isActive ? 'transform 0.1s ease-out' : 'transform 0.5s ease-in-out', display: 'inline-block' }}>
+    <div ref={ref} onMouseLeave={handleMouseLeave} className="magnet-target" style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, transition: isActive ? 'transform 0.1s ease-out' : 'transform 0.5s ease-in-out', display: 'inline-block' }}>
       {children}
     </div>
   );
