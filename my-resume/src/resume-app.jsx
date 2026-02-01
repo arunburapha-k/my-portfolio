@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import profileImg from './assets/profile.png';
 // นำเข้า React Icons (Bootstrap Icons)
-import { 
-  BsRobot, 
-  BsEnvelope, BsTelephone, BsGeoAlt, 
-  BsFilm, BsPeopleFill, BsHeartPulse, 
+import {
+  BsRobot,
+  BsEnvelope, BsTelephone, BsGeoAlt,
+  BsFilm, BsPeopleFill, BsHeartPulse,
   BsArrowUp, BsArrowRight, BsTerminal, BsCodeSlash, BsLightningCharge, BsAward
 } from 'react-icons/bs';
 
@@ -60,7 +61,7 @@ const DecryptedText = ({ text, className }) => {
   }, [text, isHovered]);
 
   return (
-    <span 
+    <span
       className={className}
       onMouseEnter={() => setIsHovered(!isHovered)}
     >
@@ -99,7 +100,7 @@ const SpotlightCard = ({ children, className = "", spotlightColor = "rgba(6, 182
         }}
       />
       <div className="relative h-full">{children}</div>
-      
+
       {/* Corner Brackets */}
       <div className="absolute top-0 left-0 w-2 h-2 border-l-2 border-t-2 border-cyan-500/30"></div>
       <div className="absolute top-0 right-0 w-2 h-2 border-r-2 border-t-2 border-cyan-500/30"></div>
@@ -113,7 +114,7 @@ const SpotlightCard = ({ children, className = "", spotlightColor = "rgba(6, 182
 
 export default function ResumeApp() {
   const [activeSection, setActiveSection] = useState('about');
-  const [darkMode, setDarkMode] = useState(() => storageGet(STORAGE_KEYS.theme, true)); 
+  const [darkMode, setDarkMode] = useState(() => storageGet(STORAGE_KEYS.theme, true));
   const [language, setLanguage] = useState(() => storageGet(STORAGE_KEYS.lang, 'en'));
   const [scrollProgress, setScrollProgress] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -142,22 +143,80 @@ export default function ResumeApp() {
     return () => clearTimeout(timer);
   }, []);
 
+  // --- แก้ไขส่วน Typing Animation ให้วนลูปตามรายการอาชีพ ---
+  // --- Typing Animation (Looping Roles with Language Support) ---
   useEffect(() => {
     if (loading) return;
-    const taglines = {
-      en: "> Initializing intelligent solutions...",
-      th: "> กำลังเริ่มต้นโซลูชันอัจฉริยะ..."
+
+    // กำหนดรายการอาชีพแยกตามภาษา
+    const rolesData = {
+      en: [
+        "AI Engineer",
+        "Software Engineer",
+        "Backend Developer",
+        "DevOps",
+        "Frontend Developer"
+      ],
+      th: [
+        "วิศวกร AI",            // AI Engineer
+        "วิศวกรซอฟต์แวร์",       // Software Engineer
+        "นักพัฒนา Backend",     // Backend Developer
+        "DevOps",              // DevOps (ทับศัพท์)
+        "นักพัฒนา Frontend"     // Frontend Developer
+      ]
     };
-    const text = taglines[language];
-    let index = 0;
-    const timer = setInterval(() => {
-      if (index < text.length) {
-        setTypedText(text.slice(0, index + 1));
-        index++;
-      } else { clearInterval(timer); }
-    }, 50);
-    return () => { clearInterval(timer); setTypedText(''); };
-  }, [loading, language]);
+
+    // เลือกชุดคำตามภาษาปัจจุบัน (ถ้าไม่มีให้ใช้ en)
+    const currentRoles = rolesData[language] || rolesData.en;
+
+    let roleIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    let timer;
+
+    const type = () => {
+      // ป้องกัน Error กรณีเปลี่ยนภาษาแล้วจำนวนคำไม่เท่ากัน
+      if (roleIndex >= currentRoles.length) roleIndex = 0;
+
+      const currentRole = currentRoles[roleIndex];
+      const prefix = "> ";
+
+      if (isDeleting) {
+        // กำลังลบตัวอักษร
+        setTypedText(prefix + currentRole.substring(0, charIndex));
+        charIndex--;
+      } else {
+        // กำลังพิมพ์ตัวอักษร
+        setTypedText(prefix + currentRole.substring(0, charIndex + 1));
+        charIndex++;
+      }
+
+      // ปรับความเร็วในการพิมพ์/ลบ
+      let speed = 200; // ความเร็วปกติ
+
+      if (isDeleting) {
+        speed = 10; // ตอนลบให้เร็วกว่าปกติ
+      }
+
+      // ตรวจสอบสถานะเพื่อเปลี่ยน Flow
+      if (!isDeleting && charIndex === currentRole.length) {
+        // พิมพ์ครบคำแล้ว -> หยุดค้างไว้ 2 วินาที
+        speed = 4000;
+        isDeleting = true;
+      } else if (isDeleting && charIndex === 0) {
+        // ลบหมดแล้ว -> เปลี่ยนไปคำถัดไป
+        isDeleting = false;
+        roleIndex = (roleIndex + 1) % currentRoles.length;
+        speed = 1000; // รอ 0.5 วินาทีก่อนเริ่มพิมพ์คำใหม่
+      }
+
+      timer = setTimeout(type, speed);
+    };
+
+    type();
+
+    return () => clearTimeout(timer);
+  }, [loading, language]); // เพิ่ม language ใน dependency เพื่อให้รีเซ็ตเมื่อสลับภาษา
 
   useEffect(() => {
     if (loading) return;
@@ -185,7 +244,7 @@ export default function ResumeApp() {
       window.scrollTo({ top: offset, behavior: 'smooth' });
     }
   };
-  
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -386,7 +445,7 @@ export default function ResumeApp() {
           <div className="mb-2 text-xs opacity-50">BIOS_CHECK... OK</div>
           <div className="mb-2 text-xs opacity-50">LOADING_MODULES... OK</div>
           <div className="h-1 w-full bg-slate-900 rounded overflow-hidden">
-            <div className="h-full bg-cyan-500 animate-[width_2s_ease-out_forwards]" style={{width: '100%'}}></div>
+            <div className="h-full bg-cyan-500 animate-[width_2s_ease-out_forwards]" style={{ width: '100%' }}></div>
           </div>
           <div className="mt-2 text-center animate-pulse">{t.loading}</div>
         </div>
@@ -420,7 +479,7 @@ export default function ResumeApp() {
       <div className="fixed top-0 left-0 h-1 z-[100] scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
 
       {/* SCROLL TOP */}
-      <button 
+      <button
         onClick={scrollToTop}
         className={`fixed bottom-8 right-8 z-50 p-3 border border-cyan-500 bg-slate-900/90 text-cyan-400 hover:bg-cyan-500 hover:text-slate-900 transition-all duration-300 backdrop-blur shadow-[0_0_15px_rgba(6,182,212,0.3)] group ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}
       >
@@ -450,8 +509,8 @@ export default function ResumeApp() {
               <DecryptedText text={t.name} className={`${darkMode ? 'text-white' : 'text-slate-900'}`} />
             </h1>
             <p className="text-xl md:text-2xl text-cyan-500 font-mono mb-6">{t.title}</p>
-            <div className="h-8 font-mono text-slate-400 mb-8">
-              {typedText}<span className="animate-pulse">_</span>
+            <div className="h-12 flex items-center font-mono text-xl md:text-2xl text-slate-600 mb-8">
+              {typedText}<span className="animate-pulse text-cyan-500">_</span>
             </div>
             <div className="flex flex-wrap gap-4">
               <button onClick={() => scrollToSection('projects')} className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-mono rounded-none border-l-4 border-white transition-all hover:translate-x-1 flex items-center gap-2">
@@ -466,8 +525,29 @@ export default function ResumeApp() {
             <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-700"></div>
             <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-slate-800 p-2 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm">
               <div className="absolute inset-0 border border-dashed border-cyan-500/30 rounded-full animate-[spin_10s_linear_infinite]"></div>
-              {/* Profile Icon */}
-              <BsRobot className="text-9xl text-cyan-500/80 hover:text-cyan-400 transition-colors" />
+              {/* Profile Image */}
+              {/* ส่วน Hero Section - รูปโปรไฟล์ */}
+              <div className="relative group flex justify-center">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-700"></div>
+
+                {/* กรอบวงกลมหลัก */}
+                <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 border-slate-300 dark:border-slate-800 p-2 flex items-center justify-center bg-white/30 dark:bg-slate-950/50 backdrop-blur-sm">
+
+                  {/* --- [จุดที่แก้ไข] เส้นประหมุนๆ --- */}
+                  <div className="absolute inset-0 border-4 border-dashed border-cyan-500/60 rounded-full animate-[spin_20s_linear_infinite]"></div>
+                  {/* ----------------------------- */}
+
+                  {/* รูปภาพ */}
+                  <div className="w-full h-full rounded-full overflow-hidden relative z-10 shadow-inner">
+                    <img
+                      src={profileImg}
+                      alt="Arunburapha Profile"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -488,15 +568,15 @@ export default function ResumeApp() {
 
       {/* CONTENT */}
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 space-y-32">
-        
+
         {/* ABOUT (01) */}
         <section id="section-about" data-section="about" className="max-w-4xl">
-           <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
+          <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
             <span className="text-cyan-500">01.</span> {t.aboutTitle}
             <span className="h-px bg-slate-800 flex-grow"></span>
           </h2>
           <div className="p-8 border border-slate-800 bg-slate-900/30 rounded-xl">
-             <p className="text-lg leading-relaxed text-slate-600 font-light">{t.about}</p>
+            <p className="text-lg leading-relaxed text-slate-600 font-light">{t.about}</p>
           </div>
         </section>
 
@@ -510,7 +590,7 @@ export default function ResumeApp() {
             {resumeData.skills.map((category, idx) => (
               <SpotlightCard key={idx} className="p-8">
                 <h3 className="font-mono text-cyan-400 mb-6 border-b border-slate-800 pb-2 flex items-center gap-2">
-                  <BsTerminal className="opacity-70"/> {category.category}
+                  <BsTerminal className="opacity-70" /> {category.category}
                 </h3>
                 <div className="space-y-4">
                   {category.items.map((skill, sIdx) => (
@@ -520,7 +600,7 @@ export default function ResumeApp() {
                         <span>{skill.level}%</span>
                       </div>
                       <div className="h-1 w-full bg-slate-800">
-                        <div className="h-full bg-emerald-500" style={{width: `${skill.level}%`}}></div>
+                        <div className="h-full bg-emerald-500" style={{ width: `${skill.level}%` }}></div>
                       </div>
                     </div>
                   ))}
@@ -541,17 +621,17 @@ export default function ResumeApp() {
               <SpotlightCard key={idx} className="group cursor-pointer" spotlightColor="rgba(16, 185, 129, 0.15)">
                 <div onClick={() => setSelectedProject(project)} className="p-6 h-full flex flex-col">
                   <div className="mb-4 overflow-hidden rounded border border-slate-800 relative">
-                     <img src={project.image} alt={project.name} className="w-full h-40 object-cover opacity-60 group-hover:opacity-100 transition-all group-hover:scale-105" />
-                     <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-xs font-mono text-emerald-400 border border-emerald-500/50 rounded flex items-center gap-1">
-                       <BsLightningCharge /> DEPLOYED
-                     </div>
+                    <img src={project.image} alt={project.name} className="w-full h-40 object-cover opacity-60 group-hover:opacity-100 transition-all group-hover:scale-105" />
+                    <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 text-xs font-mono text-emerald-400 border border-emerald-500/50 rounded flex items-center gap-1">
+                      <BsLightningCharge /> DEPLOYED
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold text-slate-100 mb-2 group-hover:text-emerald-400 transition-colors">{project.name}</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {project.tech.map((tech, tIdx) => (
-                       <span key={tIdx} className="text-[10px] uppercase font-mono px-2 py-1 bg-slate-800 text-slate-300 rounded-sm">
-                         {tech}
-                       </span>
+                      <span key={tIdx} className="text-[10px] uppercase font-mono px-2 py-1 bg-slate-800 text-slate-300 rounded-sm">
+                        {tech}
+                      </span>
                     ))}
                   </div>
                   <p className="text-sm text-slate-100 mb-4 flex-grow font-light">{project.description}</p>
@@ -572,53 +652,53 @@ export default function ResumeApp() {
           </h2>
           <div className="space-y-8 pl-4 border-l border-slate-800">
             {resumeData.education.map((edu, idx) => (
-               <div key={idx} className="relative pl-8">
-                 <div className="absolute -left-[5px] top-2 w-2 h-2 bg-slate-950 border border-cyan-500 rounded-full"></div>
-                 <div className="p-6 border border-slate-800 bg-slate-900/30 hover:bg-slate-900/80 transition-all">
-                    <div className="flex justify-between items-start mb-2">
-                       <h3 className="text-xl text-white font-semibold">{edu.school}</h3>
-                       <span className="font-mono text-xs text-emerald-400 border border-emerald-900 bg-emerald-900/20 px-2 py-1">{edu.year}</span>
-                    </div>
-                    <p className="text-cyan-500 mb-4">{edu.degree} - {edu.field}</p>
-                    <div className="grid md:grid-cols-2 gap-2 text-sm text-slate-100">
-                      {edu.courses.map((c, cIdx) => (
-                        <div key={cIdx} className="flex items-center gap-2">
-                          <span className="text-slate-300 text-xs">►</span> {c}
-                        </div>
-                      ))}
-                    </div>
-                 </div>
-               </div>
+              <div key={idx} className="relative pl-8">
+                <div className="absolute -left-[5px] top-2 w-2 h-2 bg-slate-950 border border-cyan-500 rounded-full"></div>
+                <div className="p-6 border border-slate-800 bg-slate-900/30 hover:bg-slate-900/80 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl text-white font-semibold">{edu.school}</h3>
+                    <span className="font-mono text-xs text-emerald-400 border border-emerald-900 bg-emerald-900/20 px-2 py-1">{edu.year}</span>
+                  </div>
+                  <p className="text-cyan-500 mb-4">{edu.degree} - {edu.field}</p>
+                  <div className="grid md:grid-cols-2 gap-2 text-sm text-slate-100">
+                    {edu.courses.map((c, cIdx) => (
+                      <div key={cIdx} className="flex items-center gap-2">
+                        <span className="text-slate-300 text-xs">►</span> {c}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </section>
 
         {/* INTERNSHIP (05) */}
         <section id="section-internship" data-section="internship">
-           <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
+          <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
             <span className="text-cyan-500">05.</span> {t.internshipTitle}
             <span className="h-px bg-slate-800 flex-grow"></span>
           </h2>
           <div className="p-8 border border-slate-800 bg-slate-900/30 rounded-xl relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-10">
-               <BsAward size={150} />
-             </div>
-             <div className="relative z-10">
-               <h3 className="text-2xl font-bold text-white mb-2">{t.company}</h3>
-               <div className="inline-block px-3 py-1 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-900 font-bold rounded text-sm mb-6">
-                 {t.period}
-               </div>
-               <p className="text-slate-100 mb-8 max-w-2xl">{t.description}</p>
-               <h4 className="font-mono text-sm text-slate-500 uppercase mb-4">{t.whatIBring}</h4>
-               <div className="grid md:grid-cols-2 gap-4">
-                 {t.achievements.map((item, i) => (
-                   <div key={i} className="flex items-center gap-3 p-3 border border-slate-800 bg-slate-950/50 hover:border-cyan-500/50 transition-colors">
-                     <span className="text-emerald-500"><BsArrowRight/></span>
-                     <span className="text-slate-300 text-sm">{item}</span>
-                   </div>
-                 ))}
-               </div>
-             </div>
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <BsAward size={150} />
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-2xl font-bold text-white mb-2">{t.company}</h3>
+              <div className="inline-block px-3 py-1 bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-900 font-bold rounded text-sm mb-6">
+                {t.period}
+              </div>
+              <p className="text-slate-100 mb-8 max-w-2xl">{t.description}</p>
+              <h4 className="font-mono text-sm text-slate-500 uppercase mb-4">{t.whatIBring}</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                {t.achievements.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 border border-slate-800 bg-slate-950/50 hover:border-cyan-500/50 transition-colors">
+                    <span className="text-emerald-500"><BsArrowRight /></span>
+                    <span className="text-slate-300 text-sm">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -643,44 +723,44 @@ export default function ResumeApp() {
 
         {/* CONTACT */}
         <section id="section-contact" data-section="contact" className="max-w-2xl mx-auto">
-           <div className="border border-slate-700 bg-slate-950 rounded shadow-2xl overflow-hidden">
-             <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
-               <div className="w-3 h-3 rounded-full bg-red-500"></div>
-               <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-               <div className="ml-4 font-mono text-xs text-slate-500">root@arunburapha:~</div>
-             </div>
-             <div className="p-8 font-mono">
-                <form onSubmit={(e) => { e.preventDefault(); setFormSubmitted(true); setTimeout(() => setFormSubmitted(false), 3000); }} className="space-y-4">
-                   <div className="flex flex-col">
-                     <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsTerminal/> {t.contactName}</label>
-                     <input className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" type="text" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} />
-                   </div>
-                   <div className="flex flex-col">
-                     <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsEnvelope/> {t.contactEmail}</label>
-                     <input className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" type="email" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} />
-                   </div>
-                   <div className="flex flex-col">
-                     <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsCodeSlash/> {t.contactMessage}</label>
-                     <textarea rows="4" className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
-                   </div>
-                   <button type="submit" className="w-full py-3 bg-cyan-900/50 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold flex justify-center items-center gap-2">
-                     {t.sendMessage} <BsArrowRight />
-                   </button>
-                   {formSubmitted && <div className="text-center text-emerald-500 animate-pulse">{t.messageSent}</div>}
-                </form>
-             </div>
-           </div>
+          <div className="border border-slate-700 bg-slate-950 rounded shadow-2xl overflow-hidden">
+            <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div className="ml-4 font-mono text-xs text-slate-500">root@arunburapha:~</div>
+            </div>
+            <div className="p-8 font-mono">
+              <form onSubmit={(e) => { e.preventDefault(); setFormSubmitted(true); setTimeout(() => setFormSubmitted(false), 3000); }} className="space-y-4">
+                <div className="flex flex-col">
+                  <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsTerminal /> {t.contactName}</label>
+                  <input className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" type="text" value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsEnvelope /> {t.contactEmail}</label>
+                  <input className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" type="email" value={contactForm.email} onChange={e => setContactForm({ ...contactForm, email: e.target.value })} />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-cyan-600 mb-1 flex items-center gap-2"><BsCodeSlash /> {t.contactMessage}</label>
+                  <textarea rows="4" className="bg-slate-900 border border-slate-700 p-2 text-emerald-400 focus:border-cyan-500 focus:outline-none" value={contactForm.message} onChange={e => setContactForm({ ...contactForm, message: e.target.value })}></textarea>
+                </div>
+                <button type="submit" className="w-full py-3 bg-cyan-900/50 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 transition-all font-bold flex justify-center items-center gap-2">
+                  {t.sendMessage} <BsArrowRight />
+                </button>
+                {formSubmitted && <div className="text-center text-emerald-500 animate-pulse">{t.messageSent}</div>}
+              </form>
+            </div>
+          </div>
         </section>
 
       </div>
-      
+
       {/* FOOTER */}
       <footer className="mt-32 border-t border-slate-800 py-12 text-center text-slate-500 font-mono text-xs">
         <p>{t.builtWith}</p>
         <p className="mt-2 text-slate-600">{t.quote}</p>
       </footer>
-      
+
       {/* MODAL */}
       {selectedProject && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedProject(null)}>
@@ -691,16 +771,16 @@ export default function ResumeApp() {
               <h2 className="text-3xl font-bold font-mono text-cyan-400 mb-4">{selectedProject.name}</h2>
               <p className="text-slate-300 leading-relaxed mb-6">{selectedProject.description}</p>
               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.keyHighlights}</h4>
-                   <ul className="space-y-1 text-sm text-emerald-400">
-                     {selectedProject.highlights.map((h, i) => <li key={i}>+ {h}</li>)}
-                   </ul>
-                 </div>
-                 <div>
-                   <h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.impact}</h4>
-                   <p className="text-sm text-slate-300">{selectedProject.impact}</p>
-                 </div>
+                <div>
+                  <h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.keyHighlights}</h4>
+                  <ul className="space-y-1 text-sm text-emerald-400">
+                    {selectedProject.highlights.map((h, i) => <li key={i}>+ {h}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.impact}</h4>
+                  <p className="text-sm text-slate-300">{selectedProject.impact}</p>
+                </div>
               </div>
             </div>
           </div>
