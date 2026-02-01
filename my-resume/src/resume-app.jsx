@@ -515,13 +515,17 @@ export default function ResumeApp() {
         </Magnet>
       </div>
 
+      {/* HERO SECTION */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        
+        {/* PIXEL BLAST LAYER */}
         <div className="absolute inset-0 z-0">
            <PixelBlast colors={pixelColors} gap={20} speed={0.03} />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center content-wrapper">
-          <div className="hover-card p-4 rounded-xl"> {/* ADD HOVER CARD */}
+          {/* Left Column: Text Info */}
+          <div className="order-2 md:order-1">
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-mono mb-6 backdrop-blur-sm ${darkMode ? 'border-emerald-500/30 bg-emerald-500/10 bg-black/30' : 'border-emerald-600/30 bg-emerald-100 bg-white/30'}`}>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <ShinyText text={t.availableFor} className={darkMode ? 'text-emerald-400' : 'text-emerald-700'} />
@@ -550,13 +554,30 @@ export default function ResumeApp() {
             </div>
           </div>
           
-          <div className="relative group flex justify-center hover-card rounded-full"> {/* ADD HOVER CARD */}
-            <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-700"></div>
-            <div className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 p-2 flex items-center justify-center backdrop-blur-sm ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-300 bg-white/30'}`}>
-              <div className="absolute inset-0 border-4 border-dashed border-cyan-500/60 rounded-full animate-[spin_20s_linear_infinite]"></div>
-              <div className="w-full h-full rounded-full overflow-hidden relative z-10 shadow-inner">
-                <img src={profileImg} alt="Arunburapha Profile" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-              </div>
+          {/* Right Column: Profile Image (Freestanding with Aura) */}
+          <div className="order-1 md:order-2 relative flex justify-center md:justify-end items-center h-full min-h-[400px]">
+            {/* 1. Background Aura (The Moving Effect - Behind Image) */}
+            <div className="absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 -translate-y-1/2 md:translate-x-0 w-[350px] h-[350px] md:w-[500px] md:h-[500px] pointer-events-none">
+                 {/* วงแหวนหมุนรอบนอก */}
+                 <div className={`absolute inset-0 border-[1px] border-dashed rounded-full animate-[spin_30s_linear_infinite] ${darkMode ? 'border-cyan-500/30' : 'border-cyan-600/20'}`}></div>
+                 {/* วงแหวนหมุนสวนทางรอบใน */}
+                 <div className={`absolute inset-[15%] border-[1px] border-dotted rounded-full animate-[spin_20s_linear_infinite_reverse] ${darkMode ? 'border-emerald-500/30' : 'border-emerald-600/20'}`}></div>
+                 {/* แสงฟุ้งๆ ตรงกลาง */}
+                 <div className="absolute inset-[20%] bg-cyan-500/10 blur-3xl rounded-full"></div>
+            </div>
+
+            {/* 2. The Profile Image (Full Size, No Crop) */}
+            <div className="relative z-10 hover-card"> {/* ใส่ hover-card ให้ cursor จับได้ */}
+                <img 
+                  src={profileImg} 
+                  alt="Arunburapha Profile" 
+                  className="relative w-auto h-[400px] md:h-[550px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" 
+                  style={{ 
+                    // เทคนิค Gradient Mask: ทำให้ส่วนล่างของภาพค่อยๆ จางหายไปเนียนๆ กับพื้นหลัง (ถ้าภาพเป็นครึ่งตัวตัดมา)
+                    maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+                  }}
+                />
             </div>
           </div>
         </div>
