@@ -33,33 +33,43 @@ function storageSet(key, value) {
   } catch { /* ignore */ }
 }
 
-// --- NEW COMPONENT: TACTICAL CURSOR (Fixed: Position Bug) ---
+// --- NEW COMPONENT: TACTICAL CURSOR (Smart Area Detection) ---
 const TacticalCursor = ({ darkMode }) => {
   const cursorRef = useRef(null);
   const dotRef = useRef(null);
   const hoveredElementRef = useRef(null);
   const [isClicking, setIsClicking] = useState(false);
 
-  // Initial State off-screen
   const mouse = useRef({ x: -100, y: -100 });
   const cursor = useRef({ x: -100, y: -100, w: 32, h: 32 });
 
   useEffect(() => {
-    // 1. Mouse Move
     const onMouseMove = (e) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
-      
-      // Dot moves instantly
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
       }
     };
 
-    // 2. Mouse Over (Target Detection)
     const onMouseOver = (e) => {
       const target = e.target;
-      const interactable = target.closest('button, a, input, textarea, .magnet-target');
+      
+      // Selectors: รวมทั้งปุ่ม, ข้อความ, และ "การ์ด" (hover-card)
+      let interactable = target.closest(`
+        button, a, input, textarea, .magnet-target,
+        p, h1, h2, h3, h4, h5, h6, img, li, label,
+        .hover-card
+      `);
+
+      // Priority Logic: ถ้า Hover องค์ประกอบย่อยในปุ่ม ให้เกาะที่ปุ่มแทน
+      if (interactable) {
+        const parentControl = interactable.closest('button, a, .magnet-target');
+        if (parentControl) {
+          interactable = parentControl;
+        }
+      }
+
       hoveredElementRef.current = interactable;
     };
 
@@ -71,45 +81,48 @@ const TacticalCursor = ({ darkMode }) => {
     window.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
 
-    // 3. Animation Loop (Smooth Physics)
     let animationFrame;
     const animate = () => {
       let targetX, targetY, targetW, targetH, targetRadius;
-      const ease = 0.2; // Increase responsiveness
+      const ease = 0.2;
 
       if (hoveredElementRef.current) {
         // --- LOCK MODE ---
         const rect = hoveredElementRef.current.getBoundingClientRect();
-        const padding = 15; // Padding around the button
+        
+        // ถ้าเป็น Card ใหญ่ๆ ให้ padding น้อยหน่อย ถ้าเป็นปุ่ม/ข้อความ ให้ padding เยอะหน่อย
+        const isCard = hoveredElementRef.current.classList.contains('hover-card') || hoveredElementRef.current.classList.contains('p-8');
+        const padding = isCard ? 10 : 20;
         
         targetW = rect.width + padding;
         targetH = rect.height + padding;
         targetX = rect.left + rect.width / 2;
         targetY = rect.top + rect.height / 2;
-        targetRadius = "8px"; // Rounded rectangle
+        
+        // ดึงค่า Border Radius จาก Element จริงมาใช้ (เพื่อให้ Cursor มนเท่ากันเป๊ะ)
+        const computedStyle = window.getComputedStyle(hoveredElementRef.current);
+        targetRadius = computedStyle.borderRadius !== '0px' ? computedStyle.borderRadius : '12px';
       } else {
-        // --- NORMAL MODE ---
-        targetW = 40;
-        targetH = 40;
+        // --- IDLE MODE ---
+        targetW = 32;
+        targetH = 32;
         targetX = mouse.current.x;
         targetY = mouse.current.y;
-        targetRadius = "50%"; // Circle
+        targetRadius = "50%";
       }
 
-      // Linear Interpolation (Lerp) for smoothness
+      // Linear Interpolation
       cursor.current.x += (targetX - cursor.current.x) * ease;
       cursor.current.y += (targetY - cursor.current.y) * ease;
       cursor.current.w += (targetW - cursor.current.w) * ease;
       cursor.current.h += (targetH - cursor.current.h) * ease;
 
       if (cursorRef.current) {
-        // Apply Transform (Translate + Center Offset)
         cursorRef.current.style.transform = `translate3d(${cursor.current.x}px, ${cursor.current.y}px, 0) translate(-50%, -50%)`;
         cursorRef.current.style.width = `${cursor.current.w}px`;
         cursorRef.current.style.height = `${cursor.current.h}px`;
         cursorRef.current.style.borderRadius = targetRadius;
 
-        // Toggle Visual Classes based on state
         if (hoveredElementRef.current) {
           cursorRef.current.classList.add('cursor-locked');
           cursorRef.current.classList.remove('cursor-idle');
@@ -132,17 +145,12 @@ const TacticalCursor = ({ darkMode }) => {
     };
   }, []);
 
-  const borderColor = darkMode ? 'border-cyan-400' : 'border-cyan-600';
-  const cornerColor = darkMode ? 'border-cyan-200' : 'border-cyan-800';
-
   return (
     <>
       <style>{`
         @media (pointer: fine) {
           body, a, button, input, textarea { cursor: none !important; }
         }
-        
-        /* Base Cursor Style */
         .cursor-frame {
           position: fixed;
           top: 0;
@@ -154,27 +162,22 @@ const TacticalCursor = ({ darkMode }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          /* Transition specific properties only, NOT transform */
           transition: border-color 0.2s, background-color 0.2s, border-radius 0.2s; 
         }
-
-        /* State: Idle (Circle) */
         .cursor-idle {
-          border: 2px solid ${darkMode ? 'rgba(34, 211, 238, 0.5)' : 'rgba(8, 145, 178, 0.5)'};
+          border: 2px solid ${darkMode ? 'rgba(34, 211, 238, 0.6)' : 'rgba(8, 145, 178, 0.6)'};
           background-color: transparent;
         }
-
-        /* State: Locked (Rectangle Frame) */
         .cursor-locked {
-          border: 1px dashed ${darkMode ? 'rgba(34, 211, 238, 0.3)' : 'rgba(8, 145, 178, 0.3)'};
-          background-color: ${darkMode ? 'rgba(34, 211, 238, 0.05)' : 'rgba(8, 145, 178, 0.05)'};
+          /* เส้นประแบบ Tactical */
+          border: 1px dashed ${darkMode ? 'rgba(34, 211, 238, 0.5)' : 'rgba(8, 145, 178, 0.5)'};
+          background-color: ${darkMode ? 'rgba(34, 211, 238, 0.03)' : 'rgba(8, 145, 178, 0.03)'};
         }
-
-        /* Corner Brackets (Visible only when Locked) */
+        /* มุมฉาก 4 ด้าน (Corner Brackets) */
         .cursor-corner {
           position: absolute;
-          width: 8px;
-          height: 8px;
+          width: 10px;
+          height: 10px;
           border-color: ${darkMode ? '#22d3ee' : '#0891b2'};
           opacity: 0;
           transition: opacity 0.2s ease;
@@ -182,30 +185,20 @@ const TacticalCursor = ({ darkMode }) => {
         .cursor-locked .cursor-corner {
           opacity: 1;
         }
-
-        .c-tl { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; border-top-left-radius: 2px; }
-        .c-tr { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; border-top-right-radius: 2px; }
-        .c-bl { bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; border-bottom-left-radius: 2px; }
-        .c-br { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; border-bottom-right-radius: 2px; }
+        .c-tl { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 4px; }
+        .c-tr { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 4px; }
+        .c-bl { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 4px; }
+        .c-br { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 4px; }
       `}</style>
 
-      {/* Main Cursor Frame */}
-      <div 
-        ref={cursorRef}
-        className={`cursor-frame ${isClicking ? 'scale-95' : 'scale-100'}`}
-      >
-        {/* Corners */}
+      <div ref={cursorRef} className={`cursor-frame ${isClicking ? 'scale-95' : 'scale-100'}`}>
         <div className="cursor-corner c-tl"></div>
         <div className="cursor-corner c-tr"></div>
         <div className="cursor-corner c-bl"></div>
         <div className="cursor-corner c-br"></div>
       </div>
 
-      {/* Center Dot (Precision Pointer) */}
-      <div 
-        ref={dotRef}
-        className={`fixed top-0 left-0 pointer-events-none z-[10000] w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full mix-blend-difference ${darkMode ? 'bg-cyan-400' : 'bg-cyan-600'}`}
-      />
+      <div ref={dotRef} className={`fixed top-0 left-0 pointer-events-none z-[10000] w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full mix-blend-difference ${darkMode ? 'bg-cyan-400' : 'bg-cyan-600'}`} />
     </>
   );
 };
@@ -528,7 +521,7 @@ export default function ResumeApp() {
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center content-wrapper">
-          <div>
+          <div className="hover-card p-4 rounded-xl"> {/* ADD HOVER CARD */}
             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-mono mb-6 backdrop-blur-sm ${darkMode ? 'border-emerald-500/30 bg-emerald-500/10 bg-black/30' : 'border-emerald-600/30 bg-emerald-100 bg-white/30'}`}>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <ShinyText text={t.availableFor} className={darkMode ? 'text-emerald-400' : 'text-emerald-700'} />
@@ -557,7 +550,7 @@ export default function ResumeApp() {
             </div>
           </div>
           
-          <div className="relative group flex justify-center">
+          <div className="relative group flex justify-center hover-card rounded-full"> {/* ADD HOVER CARD */}
             <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-700"></div>
             <div className={`relative w-64 h-64 md:w-80 md:h-80 rounded-full border-2 p-2 flex items-center justify-center backdrop-blur-sm ${darkMode ? 'border-slate-800 bg-slate-950/50' : 'border-slate-300 bg-white/30'}`}>
               <div className="absolute inset-0 border-4 border-dashed border-cyan-500/60 rounded-full animate-[spin_20s_linear_infinite]"></div>
@@ -592,7 +585,8 @@ export default function ResumeApp() {
             </h2>
           </ScrollReveal>
           <ScrollReveal delay={200}>
-            <div className={`p-8 border rounded-xl shadow-sm ${darkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-white/60'}`}>
+            {/* ADD HOVER CARD CLASS */}
+            <div className={`hover-card p-8 border rounded-xl shadow-sm ${darkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-white/60'}`}>
                <p className={`text-xl leading-relaxed font-light ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t.about}</p>
             </div>
           </ScrollReveal>
@@ -608,7 +602,8 @@ export default function ResumeApp() {
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {resumeData.skills.map((category, idx) => (
-                <SpotlightCard key={idx} className="p-8" darkMode={darkMode}>
+                // ADD HOVER CARD TO COMPONENT
+                <SpotlightCard key={idx} className="p-8 hover-card" darkMode={darkMode}>
                   <h3 className={`font-mono mb-6 border-b pb-2 flex items-center gap-2 ${darkMode ? 'text-cyan-400 border-slate-800' : 'text-cyan-700 border-slate-200'}`}>
                     <BsTerminal className="opacity-70"/> {category.category}
                   </h3>
@@ -633,7 +628,8 @@ export default function ResumeApp() {
           <ScrollReveal delay={200}>
             <div className="grid md:grid-cols-3 gap-6">
               {resumeData.projects.map((project, idx) => (
-                <SpotlightCard key={idx} className="group cursor-pointer" spotlightColor="rgba(16, 185, 129, 0.15)" darkMode={darkMode}>
+                // ADD HOVER CARD
+                <SpotlightCard key={idx} className="group cursor-pointer hover-card" spotlightColor="rgba(16, 185, 129, 0.15)" darkMode={darkMode}>
                   <div onClick={() => setSelectedProject(project)} className="p-6 h-full flex flex-col">
                     <div className={`mb-4 overflow-hidden rounded border relative ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
                        <img src={project.image} alt={project.name} className={`w-full h-40 object-cover group-hover:opacity-100 transition-all group-hover:scale-105 ${darkMode ? 'opacity-80' : 'opacity-90'}`} />
@@ -659,7 +655,8 @@ export default function ResumeApp() {
               {resumeData.education.map((edu, idx) => (
                  <div key={idx} className="relative pl-8">
                    <div className={`absolute -left-[5px] top-2 w-2 h-2 border border-cyan-500 rounded-full ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}></div>
-                   <div className={`p-6 border transition-all rounded-xl ${darkMode ? 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/80' : 'border-slate-200 bg-white/60 hover:bg-white/80'}`}>
+                   {/* ADD HOVER CARD */}
+                   <div className={`hover-card p-6 border transition-all rounded-xl ${darkMode ? 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/80' : 'border-slate-200 bg-white/60 hover:bg-white/80'}`}>
                       <div className="flex justify-between items-start mb-2"><h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{edu.school}</h3><span className={`font-mono text-xs border px-2 py-1 rounded ${darkMode ? 'text-emerald-400 border-emerald-900 bg-emerald-900/20' : 'text-emerald-700 border-emerald-200 bg-emerald-100'}`}>{edu.year}</span></div>
                       <p className={`mb-4 ${darkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>{edu.degree} - {edu.field}</p>
                       <div className={`grid md:grid-cols-2 gap-2 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{edu.courses.map((c, cIdx) => (<div key={cIdx} className="flex items-center gap-2"><span className="text-slate-400 text-xs">►</span> {c}</div>))}</div>
@@ -675,7 +672,8 @@ export default function ResumeApp() {
              <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400"><span className={darkMode ? 'text-cyan-500' : 'text-cyan-700'}>05.</span> {t.internshipTitle}<span className={`h-px flex-grow ${darkMode ? 'bg-slate-800' : 'bg-slate-300'}`}></span></h2>
            </ScrollReveal>
            <ScrollReveal delay={200}>
-            <div className={`p-8 border rounded-xl relative overflow-hidden shadow-sm ${darkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-white/60'}`}>
+            {/* ADD HOVER CARD */}
+            <div className={`hover-card p-8 border rounded-xl relative overflow-hidden shadow-sm ${darkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-white/60'}`}>
                <div className={`absolute top-0 right-0 p-4 opacity-5 ${darkMode ? 'text-white' : 'text-slate-900'}`}><BsAward size={150} /></div>
                <div className="relative z-10">
                  <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{t.company}</h3>
@@ -695,7 +693,8 @@ export default function ResumeApp() {
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {t.hobbies.map((hobby, index) => (
-                <SpotlightCard key={index} className="p-6 h-full text-center hover:-translate-y-2 transition-transform duration-300" darkMode={darkMode}>
+                // ADD HOVER CARD
+                <SpotlightCard key={index} className="p-6 h-full text-center hover-card hover:-translate-y-2 transition-transform duration-300" darkMode={darkMode}>
                   <div className={`text-5xl mb-6 flex justify-center ${darkMode ? 'text-cyan-500' : 'text-cyan-600'}`}>{hobbyIcons[index]}</div>
                   <h3 className={`text-xl font-bold font-mono mb-4 ${darkMode ? 'text-white' : 'text-slate-800'}`}>{hobby.title}</h3>
                   <p className={`leading-relaxed text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{hobby.desc}</p>
@@ -707,7 +706,8 @@ export default function ResumeApp() {
 
         <section id="section-contact" data-section="contact" className="max-w-2xl mx-auto">
            <ScrollReveal>
-             <div className={`border rounded shadow-2xl overflow-hidden ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-white'}`}>
+             {/* ADD HOVER CARD */}
+             <div className={`hover-card border rounded shadow-2xl overflow-hidden ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-white'}`}>
                <div className={`px-4 py-2 border-b flex items-center gap-2 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                  <div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div><div className="ml-4 font-mono text-xs text-slate-500">root@arunburapha:~</div>
                </div>
