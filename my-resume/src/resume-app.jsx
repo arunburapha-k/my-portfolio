@@ -205,6 +205,8 @@ const TacticalCursor = ({ darkMode }) => {
 
 // --- EXISTING COMPONENTS ---
 
+// *** UPDATED: ScrollReveal (One-Way Animation Only) ***
+// แก้ไขให้แสดงผลแล้วค้างไว้เลย ไม่ไหลย้อนกลับ
 const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -212,19 +214,23 @@ const ScrollReveal = ({ children, delay = 0, className = "" }) => {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsVisible(entry.isIntersecting);
+        // ถ้าเลื่อนมาเจอ (isIntersecting) ให้แสดงผลและยกเลิกการสังเกตทันที (unobserve)
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (ref.current) observer.unobserve(ref.current);
+        }
       },
       { threshold: 0.1, rootMargin: "-50px" } 
     );
     if (ref.current) observer.observe(ref.current);
-    return () => { if (ref.current) observer.unobserve(ref.current); };
+    return () => { if (ref.current) observer.disconnect(); };
   }, []);
 
   return (
     <div
       ref={ref}
       className={`transform transition-all duration-700 ease-out will-change-transform ${className} ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12'}`}
-      style={{ transitionDelay: isVisible ? `${delay}ms` : '0ms' }}
+      style={{ transitionDelay: `${delay}ms` }}
     >
       {children}
     </div>
@@ -554,28 +560,34 @@ export default function ResumeApp() {
             </div>
           </div>
           
-          {/* Right Column: Profile Image (Freestanding with Aura) */}
+          {/* Right Column: Profile Image */}
           <div className="order-1 md:order-2 relative flex justify-center md:justify-end items-center h-full min-h-[400px]">
-            {/* 1. Background Aura (The Moving Effect - Behind Image) */}
-            <div className="absolute top-1/2 left-1/2 md:left-auto md:right-[10%] -translate-x-1/2 -translate-y-1/2 md:translate-x-0 w-[350px] h-[350px] md:w-[500px] md:h-[500px] pointer-events-none">
+            
+            {/* 1. Background Aura (Layer ล่างสุด z-0) */}
+            <div className="absolute top-1/2 left-1/2 md:left-auto md:right-[5%] -translate-x-1/2 -translate-y-1/2 md:translate-x-0 w-[550px] h-[550px] md:w-[750px] md:h-[750px] pointer-events-none z-0">
                  {/* วงแหวนหมุนรอบนอก */}
-                 <div className={`absolute inset-0 border-[1px] border-dashed rounded-full animate-[spin_30s_linear_infinite] ${darkMode ? 'border-cyan-500/30' : 'border-cyan-600/20'}`}></div>
+                 <div className={`absolute inset-0 border-2 border-dashed rounded-full animate-[spin_30s_linear_infinite] ${darkMode ? 'border-cyan-500/50' : 'border-cyan-600/40'}`}></div>
                  {/* วงแหวนหมุนสวนทางรอบใน */}
-                 <div className={`absolute inset-[15%] border-[1px] border-dotted rounded-full animate-[spin_20s_linear_infinite_reverse] ${darkMode ? 'border-emerald-500/30' : 'border-emerald-600/20'}`}></div>
-                 {/* แสงฟุ้งๆ ตรงกลาง */}
-                 <div className="absolute inset-[20%] bg-cyan-500/10 blur-3xl rounded-full"></div>
+                 <div className={`absolute inset-[15%] border-4 border-dotted rounded-full animate-[spin_20s_linear_infinite_reverse] ${darkMode ? 'border-emerald-500/40' : 'border-emerald-600/30'}`}></div>
+                 {/* แสงฟุ้งๆ */}
+                 <div className="absolute inset-[25%] bg-cyan-500/10 blur-3xl rounded-full"></div>
             </div>
 
-            {/* 2. The Profile Image (Full Size, No Crop) */}
-            <div className="relative z-10 hover-card"> {/* ใส่ hover-card ให้ cursor จับได้ */}
+            {/* 2. Image Container (Layer บน z-10) */}
+            <div className="relative z-10 w-auto h-[450px] md:h-[600px] flex justify-center items-end"> 
+                {/* UPDATED: ลบ Blocker Div ออกแล้ว 
+                    เพื่อให้พื้นหลังโปร่งใส 100% ตามที่ต้องการ
+                */}
+
+                {/* ตัวรูปโปรไฟล์ */}
                 <img 
                   src={profileImg} 
                   alt="Arunburapha Profile" 
-                  className="relative w-auto h-[400px] md:h-[550px] object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" 
+                  className="magnet-target relative w-full h-full object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500" 
                   style={{ 
-                    // เทคนิค Gradient Mask: ทำให้ส่วนล่างของภาพค่อยๆ จางหายไปเนียนๆ กับพื้นหลัง (ถ้าภาพเป็นครึ่งตัวตัดมา)
-                    maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
-                    WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+                    // ยังคง Mask Blur ด้านล่างไว้ เพื่อความเนียน
+                    maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)'
                   }}
                 />
             </div>
