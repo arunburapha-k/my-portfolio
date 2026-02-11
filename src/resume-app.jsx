@@ -1,14 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import emailjs from '@emailjs/browser';
 import profileImg from './assets/profile.png';
 import signLangImg from './assets/sign-language-ai.png';
 import iotImg from './assets/iot-lab-monitor.png';
 import voiceImg from './assets/voice-control-system.png';
 // นำเข้า React Icons (Bootstrap Icons)
+// นำเข้า React Icons (Bootstrap Icons) - อัปเดตใหม่ครบชุด
 import {
-  BsRobot,
-  BsEnvelope, BsTelephone, BsGeoAlt,
+  BsRobot, BsEnvelope, BsTelephone, BsGeoAlt,
   BsFilm, BsPeopleFill, BsHeartPulse,
-  BsArrowUp, BsArrowRight, BsTerminal, BsCodeSlash, BsLightningCharge, BsAward, BsBriefcase, BsMap
+  BsArrowUp, BsArrowRight, BsTerminal, BsCodeSlash,
+  BsLightningCharge, BsAward, BsBriefcase, BsMap,
+  BsSun, BsMoonStars, BsTranslate,          // สำหรับปุ่มเปลี่ยนภาษา/ธีม
+  BsMortarboard, BsCpu, BsDatabase,         // สำหรับ About/Skills
+  BsLaptop, BsCodeSquare, BsWifi,           // สำหรับ Skills
+  BsXLg, BsCaretRightFill, BsCheck2,        // สำหรับปุ่มปิดและลิสต์รายการ
+  BsGlobe                                   // สำหรับเว็บ
 } from 'react-icons/bs';
 
 // --- UTILS & HOOKS ---
@@ -248,37 +255,39 @@ const ShinyText = ({ text, disabled = false, speed = 3, className = '' }) => {
 };
 
 const Magnet = ({ children, padding = 20, disabled = false, magnetStrength = 20 }) => {
-  const [isActive, setIsActive] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const ref = useRef(null);
 
   const handleMouseMove = (e) => {
-    if (!ref.current || disabled) return;
-    const { left, top, width, height } = ref.current.getBoundingClientRect();
+    if (disabled) return;
+    const { currentTarget, clientX, clientY } = e;
+    const { left, top, width, height } = currentTarget.getBoundingClientRect();
+
+    // คำนวณจุดกึ่งกลางปุ่ม
     const centerX = left + width / 2;
     const centerY = top + height / 2;
-    const dist = Math.sqrt(Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2));
 
-    if (dist < (width / 2 + padding)) {
-      setIsActive(true);
-      const offsetX = (e.clientX - centerX) / magnetStrength;
-      const offsetY = (e.clientY - centerY) / magnetStrength;
-      setPosition({ x: offsetX, y: offsetY });
-    } else {
-      setIsActive(false);
-      setPosition({ x: 0, y: 0 });
-    }
+    // คำนวณระยะห่าง
+    const offsetX = (clientX - centerX) / magnetStrength;
+    const offsetY = (clientY - centerY) / magnetStrength;
+
+    setPosition({ x: offsetX, y: offsetY });
   };
 
-  const handleMouseLeave = () => { setIsActive(false); setPosition({ x: 0, y: 0 }); };
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
 
   return (
-    <div ref={ref} onMouseLeave={handleMouseLeave} className="magnet-target" style={{ transform: `translate3d(${position.x}px, ${position.y}px, 0)`, transition: isActive ? 'transform 0.1s ease-out' : 'transform 0.5s ease-in-out', display: 'inline-block' }}>
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="magnet-target inline-block" // เพิ่ม inline-block เพื่อให้ขนาดพอดี
+      style={{
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+        transition: 'transform 0.1s ease-out',
+        willChange: 'transform' // บอก Browser ให้เตรียมการ์ดจอไว้ render
+      }}
+    >
       {children}
     </div>
   );
@@ -351,7 +360,57 @@ const SpotlightCard = ({ children, className = "", spotlightColor = "rgba(6, 182
     </div>
   );
 };
+// --- NEW COMPONENT: TECH AMBIENCE BACKGROUND ---
+const TechAmbienceBackground = ({ darkMode }) => {
+  // สุ่มตำแหน่งสัญลักษณ์ตกแต่ง
+  const shapes = [...Array(15)].map((_, i) => ({
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    animationDelay: `${Math.random() * 5}s`,
+    duration: `${10 + Math.random() * 20}s`,
+    symbol: Math.random() > 0.6 ? '+' : (Math.random() > 0.5 ? '×' : '•'),
+    size: Math.random() > 0.5 ? 'text-xl' : 'text-sm'
+  }));
 
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+      <style>{`
+        @keyframes floatUp {
+          0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+          20% { opacity: 0.3; }
+          80% { opacity: 0.3; }
+          100% { transform: translateY(-100px) rotate(45deg); opacity: 0; }
+        }
+        .tech-shape { animation: floatUp linear infinite; }
+      `}</style>
+
+      {/* แสงพื้นหลัง (Ambient) */}
+      <div className={`absolute top-0 left-0 w-full h-full opacity-30 ${darkMode ? 'bg-[radial-gradient(circle_at_50%_50%,_rgba(17,24,39,0),_rgba(17,24,39,1))]' : 'bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0),_rgba(255,255,255,1))]'}`}></div>
+      <div className={`absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full blur-[100px] opacity-10 animate-pulse ${darkMode ? 'bg-cyan-600' : 'bg-cyan-300'}`}></div>
+      <div className={`absolute top-[40%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[100px] opacity-10 animate-pulse ${darkMode ? 'bg-blue-600' : 'bg-blue-300'}`} style={{ animationDelay: '2s' }}></div>
+      <div className={`absolute -bottom-[20%] left-[20%] w-[50%] h-[50%] rounded-full blur-[100px] opacity-10 animate-pulse ${darkMode ? 'bg-emerald-600' : 'bg-emerald-300'}`} style={{ animationDelay: '4s' }}></div>
+
+      {/* สัญลักษณ์ลอย (Floating Shapes) */}
+      {shapes.map((shape, i) => (
+        <div
+          key={i}
+          className={`tech-shape absolute font-mono font-bold ${shape.size} ${darkMode ? 'text-slate-700' : 'text-slate-300'}`}
+          style={{
+            left: shape.left,
+            top: shape.top,
+            animationDuration: shape.duration,
+            animationDelay: shape.animationDelay
+          }}
+        >
+          {shape.symbol}
+        </div>
+      ))}
+
+      {/* Grid Pattern บางๆ ทับด้านบนอีกที */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-[0.07]"></div>
+    </div>
+  );
+};
 // --- MAIN APP ---
 
 export default function ResumeApp() {
@@ -361,7 +420,48 @@ export default function ResumeApp() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
+  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '', honey: '' });
+
+  // --- ส่วนที่เพิ่มใหม่สำหรับ EmailJS ---
+  const formRef = useRef(); // อ้างอิงถึงฟอร์ม
+  const [isSending, setIsSending] = useState(false); // เช็คสถานะกำลังส่ง
+
+  const sendEmail = (e) => {
+    e.preventDefault();
+
+    e.preventDefault();
+
+    // --- 🍯 HONEYPOT CHECK ---
+    // ถ้าช่อง honey มีข้อมูล แสดงว่าเป็นบอท -> ให้แกล้งทำเป็นส่งสำเร็จแต่ไม่ส่งจริง
+    if (contactForm.honey) {
+      console.log("Bot detected!");
+      setFormSubmitted(true); // หลอกบอทว่าส่งแล้ว
+      setTimeout(() => setFormSubmitted(false), 3000);
+      return; // จบการทำงานทันที ไม่ส่งไป EmailJS
+    }
+    // -------------------------
+
+    setIsSending(true);
+
+    // แทนที่ค่า YOUR_... ด้วยค่าที่คุณได้จากขั้นตอนที่ 2
+    // แนะนำ: ถ้าทำโปรเจกต์จริงจัง ควรเก็บค่าเหล่านี้ในไฟล์ .env
+    const SERVICE_ID = process.env.REACT_APP_EMAILJS_SERVICE_ID;
+    const TEMPLATE_ID = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
+    const PUBLIC_KEY = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
+
+    emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current, PUBLIC_KEY)
+      .then((result) => {
+        setFormSubmitted(true);
+        setContactForm({ name: '', email: '', message: '' }); // ล้างฟอร์ม
+        setIsSending(false);
+        setTimeout(() => setFormSubmitted(false), 5000);
+      }, (error) => {
+        console.log(error.text);
+        alert("เกิดข้อผิดพลาดในการส่งข้อความ โปรดลองใหม่อีกครั้ง");
+        setIsSending(false);
+      });
+  };
+
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -419,22 +519,41 @@ export default function ResumeApp() {
   const scrollToSection = (id) => { setActiveSection(id); const el = document.getElementById(`section-${id}`); if (el) { const offset = el.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: offset, behavior: 'smooth' }); } };
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  const translations = {
+  // --- ภายใน function ResumeApp() ---
+  // ฟังก์ชันแปลง % เป็นคำอธิบายระดับทักษะ (รองรับ 2 ภาษา)
+  const getSkillLevel = (level) => {
+    if (language === 'en') {
+      if (level >= 90) return "Advanced";
+      if (level >= 75) return "Upper-Intermediate";
+      if (level >= 60) return "Intermediate";
+      if (level >= 40) return "Pre-Intermediate";
+      return "Beginner";
+    } else {
+      // ภาษาไทย
+      if (level >= 90) return "เชี่ยวชาญ";
+      if (level >= 75) return "ระดับสูง";
+      if (level >= 60) return "ระดับกลาง";
+      if (level >= 40) return "พื้นฐาน";
+      return "เริ่มต้น";
+    }
+  };
+  // OPTIMIZATION: ใช้ useMemo เก็บตัวแปรภาษา ไม่ให้สร้างใหม่ทุกครั้งที่เลื่อนหน้าจอ
+  const translations = React.useMemo(() => ({
     en: {
       availableFor: "SYSTEM: ONLINE / READY FOR INTERNSHIP",
       ctaProjects: "Initialize Projects",
       ctaContact: "Ping Me",
       ctaGithub: "GitHub Repo",
       aboutTitle: "// ABOUT_ME",
-      educationTitle: "// EDUCATION_LOG",
-      experienceTitle: "// EXPERIENCE_LOG",
+      educationTitle: "// EDUCATION",
+      experienceTitle: "// EXPERIENCE",
       skillsTitle: "// TECHNICAL_CAPABILITIES",
       projectsTitle: "// DEPLOYED_PROJECTS",
       keyHighlights: "Specs:",
       impact: "Outcome:",
-      internshipTitle: "// INTERNSHIP_PROTOCOL",
+      internshipTitle: "// INTERNSHIP",
       whatIBring: "Capabilities:",
-      interestsTitle: "// BACKGROUND_PROCESSES",
+      interestsTitle: "// INTEREST",
       contactTitle: "// ESTABLISH_CONNECTION",
       contactSubtitle: "Initiate communication protocol...",
       contactName: "Input Name",
@@ -445,22 +564,24 @@ export default function ResumeApp() {
       builtWith: "System architecture: React • Status: Open",
       quote: '"Hardware eventually fails. Software eventually works." - Michael Hartung',
       loading: "SYSTEM BOOT SEQUENCE...",
-      // --- NEW TRANSLATIONS ADDED BELOW ---
-      btnPlace: "Location",       // ปุ่มแผนที่
-      btnViewSpecs: "VIEW SPECS", // ปุ่มดูรายละเอียดโปรเจกต์
-      tagDeployed: "DEPLOYED",    // ป้ายแปะบนรูปโปรเจกต์
-      modalLocationTitle: "LOCATION_DATA", // หัวข้อใน Modal แผนที่
-      loadingLogs: ["BIOS_CHECK... OK", "LOADING_MODULES... OK"], // ข้อความตอนโหลด
+      btnPlace: "Location",
+      btnViewSpecs: "VIEW SPECS",
+      tagDeployed: "DEPLOYED",
+      modalLocationTitle: "LOCATION_DATA",
+      modalChallenge: "Challenge & Solution:",
+      btnGithub: "Source Code",
+      btnDemo: "Live Demo",
+      loadingLogs: ["BIOS_CHECK... OK", "LOADING_MODULES... OK"],
 
       name: "Arunburapha Keoket",
       title: "Electronic Computer Technology Student",
-      about: "Fourth-year student in Electronic Computer Technology at King Mongkut's University of Technology North Bangkok. I possess strong learning agility, a solid grasp of programming concepts, and effective teamwork skills. I am currently seeking an internship opportunity in Programming, Web Development, and Database Management, eager to apply my academic knowledge to real-world projects and contribute to organizational success.",
+      about: "Fourth-year student in Electronic Computer Technology at King Mongkut's University of Technology North Bangkok. I possess strong learning agility, a solid grasp of programming concepts, and effective teamwork skills. I am currently seeking an internship opportunity in Programming, Web Development, and Database Management.",
       position: "Seeking Internship Position",
       company: "Available for Internship",
       period: "20 April 2026 - 31 July 2026",
       description: "Targeting sectors: Programming, Web Development, and Database Management. Ready to deploy skills in real-world environments.",
       achievements: ["Polyglot programming capabilities", "IoT System Architecture & Integration", "Full-cycle project deployment", "Rapid algorithmic problem solving"],
-      hobbies: [{ title: "Movies", desc: "Enjoy watching diverse genres to analyze narratives and gain new perspectives." }, { title: "Team Collaboration", desc: "Keen interest in studying effective teamwork dynamics and collaborative processes." }, { title: "Self-Improvement", desc: "Prioritize work-life balance and mindfulness activities to ensure mental readiness for productive work." }],
+      hobbies: [{ title: "Movies", desc: "Enjoy watching diverse genres to analyze narratives." }, { title: "Team Collaboration", desc: "Keen interest in studying effective teamwork dynamics." }, { title: "Self-Improvement", desc: "Prioritize work-life balance and mindfulness." }],
       sections: [{ id: 'about', label: 'About' }, { id: 'skills', label: 'Skills' }, { id: 'projects', label: 'Projects' }, { id: 'education', label: 'Education' }, { id: 'experience', label: 'Experience' }, { id: 'internship', label: 'Internship' }, { id: 'interests', label: 'Interests' }, { id: 'contact', label: 'Contact' }]
     },
     th: {
@@ -477,7 +598,7 @@ export default function ResumeApp() {
       impact: "ผลลัพธ์:",
       internshipTitle: "// โอกาสฝึกงาน",
       whatIBring: "ความสามารถ:",
-      interestsTitle: "// กระบวนการเบื้องหลัง",
+      interestsTitle: "// ความสนใจ",
       contactTitle: "// สร้างการเชื่อมต่อ",
       contactSubtitle: "เริ่มโปรโตคอลการสื่อสาร...",
       contactName: "ชื่อของคุณ",
@@ -488,28 +609,32 @@ export default function ResumeApp() {
       builtWith: "สถาปัตยกรรมระบบ: React • สถานะ: เปิดรับ",
       quote: '"ฮาร์ดแวร์พังได้เสมอ ซอฟต์แวร์ทำงานได้เสมอ (ในที่สุด)"',
       loading: "กำลังบูตระบบ...",
-      // --- NEW TRANSLATIONS ADDED BELOW ---
-      btnPlace: "ดูแผนที่",       // ภาษาไทย
-      btnViewSpecs: "ดูรายละเอียด", // ภาษาไทย
-      tagDeployed: "ใช้งานจริง",    // ภาษาไทย
-      modalLocationTitle: "พิกัดตำแหน่ง", // ภาษาไทย
-      loadingLogs: ["ตรวจสอบไบออส... เรียบร้อย", "กำลังโหลดโมดูล... เรียบร้อย"], // ภาษาไทย
+      btnPlace: "ดูแผนที่",
+      btnViewSpecs: "ดูรายละเอียด",
+      tagDeployed: "ใช้งานจริง",
+      modalLocationTitle: "พิกัดตำแหน่ง",
+      modalChallenge: "ความท้าทายและการแก้ไข:",
+      btnGithub: "ดูซอร์สโค้ด",
+      btnDemo: "ตัวอย่างผลงาน",
+      loadingLogs: ["ตรวจสอบไบออส... เรียบร้อย", "กำลังโหลดโมดูล... เรียบร้อย"],
 
       name: "อรุณบูรพา แก้วเกล็ด",
       title: "นักศึกษาอิเล็กทรอนิกส์คอมพิวเตอร์เทคโนโลยี",
-      about: "นักศึกษาชั้นปีที่ 4 สาขาเทคโนโลยีคอมพิวเตอร์อิเล็กทรอนิกส์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ผมมีทักษะการเรียนรู้ที่รวดเร็ว เข้าใจหลักการเขียนโปรแกรมอย่างลึกซึ้ง และมีทักษะการทำงานเป็นทีมที่ดีเยี่ยม ขณะนี้กำลังมองหาโอกาสฝึกงานในด้านการเขียนโปรแกรม, การพัฒนาเว็บ และการจัดการฐานข้อมูล โดยมีความมุ่งมั่นที่จะนำความรู้ทางวิชาการมาประยุกต์ใช้กับโปรเจกต์จริงเพื่อสร้างความสำเร็จให้กับองค์กร",
+      about: "นักศึกษาชั้นปีที่ 4 สาขาเทคโนโลยีคอมพิวเตอร์อิเล็กทรอนิกส์ มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ ผมมีทักษะการเรียนรู้ที่รวดเร็ว เข้าใจหลักการเขียนโปรแกรมอย่างลึกซึ้ง และมีทักษะการทำงานเป็นทีมที่ดีเยี่ยม ขณะนี้กำลังมองหาโอกาสฝึกงานในด้านการเขียนโปรแกรม, การพัฒนาเว็บ และการจัดการฐานข้อมูล",
       position: "กำลังหาที่ฝึกงาน",
       company: "พร้อมฝึกงาน",
       period: "20 เมษายน 2026 - 31 กรกฎาคม 2026",
       description: "เป้าหมาย: การเขียนโปรแกรม, การพัฒนาเว็บ และการจัดการฐานข้อมูล พร้อมนำทักษะไปใช้ในสภาพแวดล้อมจริง",
       achievements: ["ความสามารถในการเขียนโปรแกรมหลายภาษา", "สถาปัตยกรรมระบบ IoT และการเชื่อมต่อ", "การส่งมอบโปรเจกต์ครบวงจร", "การแก้ปัญหาเชิงอัลกอริทึมอย่างรวดเร็ว"],
-      hobbies: [{ title: "ภาพยนตร์", desc: "ชอบดูภาพยนตร์หลากหลายแนวเพื่อวิเคราะห์การเล่าเรื่องและเปิดมุมมองใหม่ๆ" }, { title: "การทำงานร่วมกัน", desc: "สนใจศึกษาพลวัตการทำงานเป็นทีมและกระบวนการทำงานร่วมกันที่มีประสิทธิภาพ" }, { title: "การพัฒนาตนเอง", desc: "ให้ความสำคัญกับสมดุลชีวิตและการฝึกสติเพื่อเตรียมความพร้อมทางจิตใจสำหรับการทำงานที่มีประสิทธิภาพ" }],
+      hobbies: [{ title: "ภาพยนตร์", desc: "ชอบดูภาพยนตร์หลากหลายแนวเพื่อวิเคราะห์การเล่าเรื่อง." }, { title: "การทำงานร่วมกัน", desc: "สนใจศึกษาพลวัตการทำงานเป็นทีมที่มีประสิทธิภาพ." }, { title: "การพัฒนาตนเอง", desc: "ให้ความสำคัญกับสมดุลชีวิตและการฝึกสติ." }],
       sections: [{ id: 'about', label: 'เกี่ยวกับ' }, { id: 'skills', label: 'ทักษะ' }, { id: 'projects', label: 'โปรเจกต์' }, { id: 'education', label: 'การศึกษา' }, { id: 'experience', label: 'ประสบการณ์' }, { id: 'internship', label: 'ฝึกงาน' }, { id: 'interests', label: 'ความสนใจ' }, { id: 'contact', label: 'ติดต่อ' }]
     }
-  };
+  }), []); // [] หมายถึงสร้างครั้งเดียวและจำไว้ตลอดไป
 
   const t = translations[language];
-  const resumeData = {
+
+  // OPTIMIZATION: ใช้ useMemo กับ Data ชุดใหญ่
+  const resumeData = React.useMemo(() => ({
     contact: { email: "arunburapha.k@gmail.com", phone: "062-464-5582", location: language === 'en' ? "Nonthaburi, TH" : "นนทบุรี, ไทย" },
     skills: [
       { category: language === 'en' ? "LANGUAGES" : "ภาษา", items: [{ name: "Python", level: 85 }, { name: "Java", level: 75 }, { name: "C", level: 80 }, { name: "SQL", level: 75 }, { name: "PHP", level: 70 }] },
@@ -518,10 +643,25 @@ export default function ResumeApp() {
       { category: language === 'en' ? "SPECIALIZED" : "เฉพาะทาง", items: [{ name: "IoT Systems", level: 85 }, { name: "AI/ML", level: 80 }, { name: "Microcontrollers", level: 85 }] }
     ],
     education: [
-      { school: language === 'en' ? "KMUTNB" : "มจพ.", degree: language === 'en' ? "B.Ind.Tech (Continuing)" : "อุตสาหกรรมศาสตรบัณฑิต (ต่อเนื่อง)", field: language === 'en' ? "Electronic Computer Tech" : "เทคโนโลยีคอมพิวเตอร์อิเล็กทรอนิกส์", year: "2024 - 2026", courses: ["Computer Programming", "Database Tech", "Web App Dev", "Mobile App Dev", "OOP"] },
-      { school: language === 'en' ? "Chanthaburi Tech" : "วท.จันทบุรี", degree: language === 'en' ? "Diploma" : "ปวส.", field: language === 'en' ? "Electronics" : "อิเล็กทรอนิกส์", year: "2022 - 2024", courses: ["Network Systems", "Programming", "Microcontrollers", "PLC"] }
+      {
+        school: language === 'en' ? "KMUTNB" : "มจพ.",
+        degree: language === 'en' ? "B.Ind.Tech (Continuing)" : "อุตสาหกรรมศาสตรบัณฑิต (ต่อเนื่อง)",
+        field: language === 'en' ? "Electronic Computer Tech" : "เทคโนโลยีคอมพิวเตอร์อิเล็กทรอนิกส์",
+        year: "2024 - 2026",
+        courses: ["Computer Programming", "Database Tech", "Web App Dev", "Mobile App Dev", "OOP"],
+        // [เพิ่มบรรทัดนี้]
+        locationQuery: "King Mongkut's University of Technology North Bangkok"
+      },
+      {
+        school: language === 'en' ? "Chanthaburi Tech" : "วท.จันทบุรี",
+        degree: language === 'en' ? "Diploma" : "ปวส.",
+        field: language === 'en' ? "Electronics" : "อิเล็กทรอนิกส์",
+        year: "2022 - 2024",
+        courses: ["Network Systems", "Programming", "Microcontrollers", "PLC"],
+        // [เพิ่มบรรทัดนี้]
+        locationQuery: "Chanthaburi Technical College"
+      }
     ],
-    // UPDATED: EXPERIENCE DATA
     experience: [
       {
         role: language === 'en' ? "Assistant Technician Intern" : "นักศึกษาฝึกงานผู้ช่วยช่าง",
@@ -541,12 +681,8 @@ export default function ResumeApp() {
     projects: [
       {
         name: language === 'en' ? "Sign Language Translation AI" : "AI แปลภาษามือ",
-        // อัปเดต Tech Pills: เพิ่ม GRU, Kotlin, Android Studio
         tech: ["Python", "TensorFlow", "GRU Model", "Kotlin", "Android Studio"],
-        // อัปเดต Description: เน้นเรื่อง GRU และ Native App
-        description: language === 'en'
-          ? "Implemented a GRU model for sequential gesture recognition, integrated with a native Kotlin Android app for real-time translation."
-          : "พัฒนาระบบจดจำท่าทางด้วยโมเดล GRU สำหรับข้อมูลแบบต่อเนื่อง (Sequence) เชื่อมต่อกับแอป Android ที่เขียนด้วย Kotlin เพื่อการแปลผลที่ลื่นไหล",
+        description: language === 'en' ? "Implemented a GRU model for sequential gesture recognition, integrated with a native Kotlin Android app for real-time translation." : "พัฒนาระบบจดจำท่าทางด้วยโมเดล GRU สำหรับข้อมูลแบบต่อเนื่อง (Sequence) เชื่อมต่อกับแอป Android ที่เขียนด้วย Kotlin เพื่อการแปลผลที่ลื่นไหล",
         level: "Bachelor Project",
         highlights: language === 'en' ? ["95% Accuracy", "Real-time processing", "Android Integration"] : ["ความแม่นยำ 95%", "ประมวลผลเรียลไทม์", "รองรับ Android"],
         impact: language === 'en' ? "Bridging communication gaps in hospitals." : "ช่วยลดช่องว่างการสื่อสารในโรงพยาบาล",
@@ -554,12 +690,8 @@ export default function ResumeApp() {
       },
       {
         name: language === 'en' ? "IoT Lab Monitor" : "ระบบมอนิเตอร์แล็บ IoT",
-        // อัปเดต Tech Pills: เพิ่ม PZEM-004T
         tech: ["ESP32", "PZEM-004T", "Blynk App", "WiFi"],
-        // อัปเดต Description: เน้นเรื่องเซ็นเซอร์วัดกระแสและการส่งข้อมูล
-        description: language === 'en'
-          ? "Lab monitoring system using PZEM-004T for precise current measurement, transmitting data via ESP32 to Blynk App for real-time status."
-          : "ระบบตรวจสอบการใช้งานห้องแล็บด้วยเซ็นเซอร์ PZEM-004T วัดกระแสไฟฟ้าแม่นยำสูง ส่งข้อมูลผ่าน ESP32 แสดงผลสถานะบนแอป Blynk",
+        description: language === 'en' ? "Lab monitoring system using PZEM-004T for precise current measurement, transmitting data via ESP32 to Blynk App for real-time status." : "ระบบตรวจสอบการใช้งานห้องแล็บด้วยเซ็นเซอร์ PZEM-004T วัดกระแสไฟฟ้าแม่นยำสูง ส่งข้อมูลผ่าน ESP32 แสดงผลสถานะบนแอป Blynk",
         level: "Diploma Project",
         highlights: language === 'en' ? ["Non-invasive sensor", "Real-time DB", "Low latency"] : ["เซ็นเซอร์แบบไม่สัมผัส", "ฐานข้อมูลเรียลไทม์", "ความหน่วงต่ำ"],
         impact: language === 'en' ? "Optimized resource usage." : "ช่วยบริหารจัดการทรัพยากรให้คุ้มค่า",
@@ -567,19 +699,15 @@ export default function ResumeApp() {
       },
       {
         name: language === 'en' ? "Voice Control System" : "ระบบสั่งงานด้วยเสียง",
-        // อัปเดต Tech Pills: เพิ่ม MQTT
         tech: ["Google Assistant", "MQTT", "NodeMCU", "Google Cloud"],
-        // อัปเดต Description: เน้นเรื่อง MQTT Cloud Protocol
-        description: language === 'en'
-          ? "Smart home automation integrating Google Assistant via MQTT Cloud protocol for low-latency voice-controlled lighting."
-          : "ระบบบ้านอัจฉริยะเชื่อมต่อ Google Assistant ผ่านโปรโตคอล MQTT Cloud เพื่อสั่งเปิด-ปิดไฟด้วยเสียงจากมือถือได้อย่างรวดเร็ว",
+        description: language === 'en' ? "Smart home automation integrating Google Assistant via MQTT Cloud protocol for low-latency voice-controlled lighting." : "ระบบบ้านอัจฉริยะเชื่อมต่อ Google Assistant ผ่านโปรโตคอล MQTT Cloud เพื่อสั่งเปิด-ปิดไฟด้วยเสียงจากมือถือได้อย่างรวดเร็ว",
         level: "Vocational Project",
         highlights: language === 'en' ? ["Voice Command", "Cloud Integration", "Safety Cutoff"] : ["สั่งงานด้วยเสียง", "เชื่อมต่อ Cloud", "ระบบตัดไฟนิรภัย"],
         impact: language === 'en' ? "Accessible smart home demo." : "ตัวอย่างบ้านอัจฉริยะที่เข้าถึงได้ง่าย",
         image: voiceImg
       }
     ]
-  };
+  }), [language]); // สร้างใหม่เฉพาะตอนเปลี่ยนภาษาเท่านั้น
 
   const hobbyIcons = [<BsFilm />, <BsPeopleFill />, <BsHeartPulse />];
 
@@ -616,7 +744,8 @@ export default function ResumeApp() {
       <TacticalCursor darkMode={darkMode} />
       {/* ------------------------------- */}
 
-      <div className="fixed inset-0 pointer-events-none bg-grid-pattern opacity-[0.15] z-0"></div>
+      <TechAmbienceBackground darkMode={darkMode} />
+
       <div className="fixed top-0 left-0 h-1 z-[100] scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
 
       <button onClick={scrollToTop} className={`fixed bottom-8 right-8 z-50 p-3 border border-cyan-500 bg-slate-900/90 text-cyan-400 hover:bg-cyan-500 hover:text-slate-900 transition-all duration-300 backdrop-blur shadow-[0_0_15px_rgba(6,182,212,0.3)] group ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
@@ -624,14 +753,29 @@ export default function ResumeApp() {
       </button>
 
       <div className="fixed top-6 right-6 z-50 flex gap-3">
+        {/* ปุ่มเปลี่ยนภาษา */}
         <Magnet>
-          <button onClick={() => setLanguage(language === 'en' ? 'th' : 'en')} className={`w-10 h-10 flex items-center justify-center rounded font-mono text-xs border transition-all backdrop-blur ${darkMode ? 'border-slate-700 bg-slate-900/80 text-cyan-400 hover:bg-cyan-900/20' : 'border-slate-300 bg-white/80 text-cyan-600 hover:bg-cyan-50'}`}>
-            {language.toUpperCase()}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
+            className={`w-10 h-10 flex items-center justify-center rounded font-mono text-base font-bold border transition-all backdrop-blur 
+            ${darkMode ? 'border-slate-700 bg-slate-900/80 text-cyan-400 hover:bg-cyan-900/20' : 'border-slate-300 bg-white/80 text-cyan-600 hover:bg-cyan-50'}`}
+          >
+            {/* ใช้ไอคอนแทนตัวหนังสือล้วน */}
+            <div className="flex flex-col items-center scale-75">
+              <span className="text-[20 px] font-bold mt-0.5">{language.toUpperCase()}</span>
+            </div>
           </button>
         </Magnet>
+
+        {/* ปุ่มเปลี่ยนธีม */}
         <Magnet>
-          <button onClick={() => setDarkMode(!darkMode)} className={`w-10 h-10 flex items-center justify-center rounded border transition-all backdrop-blur ${darkMode ? 'border-slate-700 bg-slate-900/80 text-cyan-400 hover:bg-cyan-900/20' : 'border-slate-300 bg-white/80 text-cyan-600 hover:bg-cyan-50'}`}>
-            {darkMode ? '☀' : '☾'}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`w-10 h-10 flex items-center justify-center rounded border transition-all backdrop-blur 
+            ${darkMode ? 'border-slate-700 bg-slate-900/80 text-yellow-400 hover:bg-cyan-900/20' : 'border-slate-300 bg-white/80 text-slate-600 hover:bg-cyan-50'}`}
+          >
+            {/* เปลี่ยนจาก ☀/☾ เป็นไอคอน */}
+            {darkMode ? <BsSun size={18} /> : <BsMoonStars size={16} />}
           </button>
         </Magnet>
       </div>
@@ -657,6 +801,22 @@ export default function ResumeApp() {
               <DecryptedText text={t.name} className={darkMode ? 'text-white' : 'text-slate-900'} />
             </h1>
             <p className={`text-xl md:text-2xl font-mono mb-6 ${darkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>{t.title}</p>
+            {/* --- [ส่วนที่เพิ่มใหม่] ข้อมูลติดต่อ (เบอร์โทร & อีเมล) --- */}
+            <div className={`flex flex-col md:flex-row gap-2 md:gap-6 mb-8 font-mono text-sm md:text-base ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+              <a href="tel:0624645582" className="flex items-center gap-2 hover:text-emerald-500 transition-colors group">
+                <span className={`p-1.5 rounded-full ${darkMode ? 'bg-slate-800 group-hover:bg-emerald-500/20' : 'bg-slate-200 group-hover:bg-emerald-100'}`}>
+                  <BsTelephone size={14} />
+                </span>
+                062-464-5582
+              </a>
+              <a href="mailto:arunburapha.k@gmail.com" className="flex items-center gap-2 hover:text-emerald-500 transition-colors group">
+                <span className={`p-1.5 rounded-full ${darkMode ? 'bg-slate-800 group-hover:bg-emerald-500/20' : 'bg-slate-200 group-hover:bg-emerald-100'}`}>
+                  <BsEnvelope size={14} />
+                </span>
+                arunburapha.k@gmail.com
+              </a>
+            </div>
+            {/* ---------------------------------------------------- */}
             <div className={`h-12 flex items-center font-mono text-xl md:text-2xl mb-8 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
               {typedText}<span className="animate-pulse text-cyan-500">_</span>
             </div>
@@ -721,18 +881,111 @@ export default function ResumeApp() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 space-y-32">
-        <section id="section-about" data-section="about" className="max-w-4xl">
+        <section id="section-about" data-section="about" className="max-w-4xl mx-auto">
           <ScrollReveal>
-            <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
+            <h2 className="font-mono text-3xl mb-8 flex items-center gap-4 text-slate-400">
               <span className={darkMode ? 'text-cyan-500' : 'text-cyan-700'}>01.</span> {t.aboutTitle}
               <span className={`h-px flex-grow ${darkMode ? 'bg-slate-800' : 'bg-slate-300'}`}></span>
             </h2>
           </ScrollReveal>
+
           <ScrollReveal delay={200}>
-            {/* ADD HOVER CARD CLASS */}
-            <div className={`hover-card p-8 border rounded-xl shadow-sm ${darkMode ? 'border-slate-800 bg-slate-900/30' : 'border-slate-200 bg-white/60'}`}>
-              <p className={`text-xl leading-relaxed font-light ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{t.about}</p>
-            </div>
+            {/* เปลี่ยนจาก div ธรรมดา เป็น SpotlightCard เพื่อรับเอฟเฟคแสง */}
+            <SpotlightCard className="p-0 hover-card overflow-hidden" darkMode={darkMode} spotlightColor={darkMode ? "rgba(34, 211, 238, 0.15)" : "rgba(8, 145, 178, 0.1)"}>
+
+              {/* 1. ส่วนหัว (Terminal Header) - ตกแต่งให้เหมือนหน้าต่างโปรแกรม */}
+              <div className={`px-4 py-3 border-b flex justify-between items-center select-none ${darkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-slate-100/80 border-slate-200'}`}>
+                <div className="flex items-center gap-2">
+                  {/* ปุ่ม Mac OS Style */}
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+                  </div>
+                  <span className={`ml-3 font-mono text-[10px] tracking-widest opacity-60 ${darkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>
+                    USER_PROFILE.SYS
+                  </span>
+                </div>
+                <div className={`text-[10px] font-mono opacity-40 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  ID: 6703052411074 {/* ใส่รหัสนักศึกษาหรือเลขเท่ๆ ก็ได้ครับ */}
+                </div>
+              </div>
+
+              {/* 2. เนื้อหาหลัก (Main Content) */}
+              <div className="p-8 relative">
+                {/* Decor: เลข Section จางๆ มุมขวา */}
+                <div className="absolute top-4 right-4 text-[10px] font-mono opacity-10 rotate-90 origin-top-right select-none">
+                  SEC_01 // BIO
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  {/* ข้อความแนะนำตัว */}
+                  <div className="flex items-start gap-5">
+                    {/* ไอคอน Robot เท่ๆ ด้านซ้าย */}
+                    <div className={`hidden md:flex p-3 rounded-lg mt-1 shrink-0 ${darkMode ? 'bg-slate-800 text-cyan-400' : 'bg-slate-200 text-cyan-600'}`}>
+                      <BsRobot size={24} />
+                    </div>
+
+                    {/* Text Content */}
+                    <div>
+                      <p className={`text-lg leading-relaxed font-light ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                        {t.about}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 3. แถบข้อมูลสถิติ (Stats Grid) - เพิ่มความ Tech */}
+                  <div className={`mt-2 pt-6 border-t border-dashed grid grid-cols-2 md:grid-cols-4 gap-4 ${darkMode ? 'border-slate-800' : 'border-slate-300'}`}>
+                    {/* Stat 1: Status (คงเดิม เพราะ Animation ping สวยแล้ว) */}
+                    <div>
+                      <div className={`text-[10px] font-mono uppercase opacity-50 mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {language === 'en' ? 'STATUS' : 'สถานะ'}
+                      </div>
+                      <div className={`text-sm font-bold flex items-center gap-2 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        {language === 'en' ? 'Online' : 'ออนไลน์'}
+                      </div>
+                    </div>
+
+                    {/* Stat 2: Location (ใช้ BsGeoAlt) */}
+                    <div>
+                      <div className={`text-[10px] font-mono uppercase opacity-50 mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {language === 'en' ? 'LOCATION' : 'ที่อยู่'}
+                      </div>
+                      <div className={`text-sm font-medium flex items-center gap-1 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <BsGeoAlt size={12} className="opacity-70" />
+                        {language === 'en' ? 'Nonthaburi, TH' : 'นนทบุรี, ไทย'}
+                      </div>
+                    </div>
+
+                    {/* Stat 3: Education (เพิ่ม BsMortarboard - หมวกปริญญา) */}
+                    <div>
+                      <div className={`text-[10px] font-mono uppercase opacity-50 mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {language === 'en' ? 'CLASS' : 'ระดับชั้น'}
+                      </div>
+                      <div className={`text-sm font-medium flex items-center gap-1 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <BsMortarboard size={12} className="opacity-70" />
+                        {language === 'en' ? 'Senior Year' : 'ปี 4'}
+                      </div>
+                    </div>
+
+                    {/* Stat 4: Focus (เพิ่ม BsCpu - ชิปประมวลผล) */}
+                    <div>
+                      <div className={`text-[10px] font-mono uppercase opacity-50 mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {language === 'en' ? 'FOCUS' : 'ความสนใจ'}
+                      </div>
+                      <div className={`text-sm font-medium flex items-center gap-1 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <BsCpu size={12} className="opacity-70" />
+                        Web Dev / IoT
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SpotlightCard>
           </ScrollReveal>
         </section>
 
@@ -745,22 +998,44 @@ export default function ResumeApp() {
           </ScrollReveal>
           <ScrollReveal delay={200}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {resumeData.skills.map((category, idx) => (
-                // ADD HOVER CARD TO COMPONENT
-                <SpotlightCard key={idx} className="p-8 hover-card" darkMode={darkMode}>
-                  <h3 className={`font-mono mb-6 border-b pb-2 flex items-center gap-2 ${darkMode ? 'text-cyan-400 border-slate-800' : 'text-cyan-700 border-slate-200'}`}>
-                    <BsTerminal className="opacity-70" /> {category.category}
-                  </h3>
-                  <div className="space-y-4">
-                    {category.items.map((skill, sIdx) => (
-                      <div key={sIdx}>
-                        <div className={`flex justify-between text-sm mb-1 font-mono ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}><span>{skill.name}</span><span>{skill.level}%</span></div>
-                        <div className={`h-1 w-full ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`}><div className="h-full bg-emerald-500" style={{ width: `${skill.level}%` }}></div></div>
-                      </div>
-                    ))}
-                  </div>
-                </SpotlightCard>
-              ))}
+              {resumeData.skills.map((category, idx) => {
+                // 1. เลือกไอคอนตามลำดับหมวดหมู่ (0=Lang, 1=Web, 2=Data, 3=Special)
+                const CategoryIcon = [BsCodeSquare, BsLaptop, BsDatabase, BsCpu][idx] || BsTerminal;
+
+                return (
+                  <SpotlightCard key={idx} className="p-8 hover-card" darkMode={darkMode}>
+                    <h3 className={`font-mono mb-6 border-b pb-2 flex items-center gap-2 ${darkMode ? 'text-cyan-400 border-slate-800' : 'text-cyan-700 border-slate-200'}`}>
+                      {/* 2. แสดงไอคอนที่เลือกมา แทน BsTerminal เดิม */}
+                      <CategoryIcon className="opacity-70" size={20} />
+                      {category.category}
+                    </h3>
+                    <div className="space-y-5">
+                      {category.items.map((skill, sIdx) => (
+                        <div key={sIdx}>
+                          <div className={`flex justify-between items-end mb-2 font-mono`}>
+                            <span className={`text-base ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                              {skill.name}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded border 
+                              ${darkMode
+                                ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+                                : 'text-emerald-700 border-emerald-600/30 bg-emerald-100'
+                              }`}>
+                              {getSkillLevel(skill.level)}
+                            </span>
+                          </div>
+                          <div className={`h-1.5 w-full rounded-full overflow-hidden ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                            <div
+                              className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-1000 ease-out"
+                              style={{ width: `${skill.level}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </SpotlightCard>
+                );
+              })}
             </div>
           </ScrollReveal>
         </section>
@@ -792,19 +1067,60 @@ export default function ResumeApp() {
 
         <section id="section-education" data-section="education">
           <ScrollReveal>
-            <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400"><span className={darkMode ? 'text-cyan-500' : 'text-cyan-700'}>04.</span> {t.educationTitle}<span className={`h-px flex-grow ${darkMode ? 'bg-slate-800' : 'bg-slate-300'}`}></span></h2>
+            <h2 className="font-mono text-3xl mb-12 flex items-center gap-4 text-slate-400">
+              <span className={darkMode ? 'text-cyan-500' : 'text-cyan-700'}>04.</span> {t.educationTitle}
+              <span className={`h-px flex-grow ${darkMode ? 'bg-slate-800' : 'bg-slate-300'}`}></span>
+            </h2>
           </ScrollReveal>
           <ScrollReveal delay={200}>
             <div className={`space-y-8 pl-4 border-l ${darkMode ? 'border-slate-800' : 'border-slate-300'}`}>
               {resumeData.education.map((edu, idx) => (
                 <div key={idx} className="relative pl-8">
                   <div className={`absolute -left-[5px] top-2 w-2 h-2 border border-cyan-500 rounded-full ${darkMode ? 'bg-slate-950' : 'bg-slate-50'}`}></div>
-                  {/* ADD HOVER CARD */}
+
+                  {/* HOVER CARD START */}
                   <div className={`hover-card p-6 border transition-all rounded-xl ${darkMode ? 'border-slate-800 bg-slate-900/30 hover:bg-slate-900/80' : 'border-slate-200 bg-white/60 hover:bg-white/80'}`}>
-                    <div className="flex justify-between items-start mb-2"><h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{edu.school}</h3><span className={`font-mono text-xs border px-2 py-1 rounded ${darkMode ? 'text-emerald-400 border-emerald-900 bg-emerald-900/20' : 'text-emerald-700 border-emerald-200 bg-emerald-100'}`}>{edu.year}</span></div>
-                    <p className={`mb-4 ${darkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>{edu.degree} - {edu.field}</p>
-                    <div className={`grid md:grid-cols-2 gap-2 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{edu.courses.map((c, cIdx) => (<div key={cIdx} className="flex items-center gap-2"><span className="text-slate-400 text-xs">►</span> {c}</div>))}</div>
+
+                    {/* Header: School Name + Map Button + Year */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-2">
+                      <div className="flex items-center gap-3">
+                        <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                          {edu.school}
+                        </h3>
+
+                        {/* --- [ปุ่ม Map ที่เพิ่มเข้ามา] --- */}
+                        <Magnet magnetStrength={10}>
+                          <button
+                            onClick={() => setMapQuery(edu.locationQuery)}
+                            className={`text-xs px-2 py-1 flex items-center gap-1 rounded border transition-all 
+                                ${darkMode
+                                ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20'
+                                : 'border-emerald-600/50 text-emerald-600 hover:bg-emerald-100'}`}
+                          >
+                            <BsMap /> {t.btnPlace}
+                          </button>
+                        </Magnet>
+                        {/* ----------------------------- */}
+                      </div>
+
+                      <span className={`font-mono text-xs border px-2 py-1 rounded ${darkMode ? 'text-emerald-400 border-emerald-900 bg-emerald-900/20' : 'text-emerald-700 border-emerald-200 bg-emerald-100'}`}>
+                        {edu.year}
+                      </span>
+                    </div>
+
+                    <p className={`mb-4 ${darkMode ? 'text-cyan-500' : 'text-cyan-700'}`}>
+                      {edu.degree} - {edu.field}
+                    </p>
+
+                    <div className={`grid md:grid-cols-2 gap-2 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {edu.courses.map((c, cIdx) => (
+                        <div key={cIdx} className="flex items-center gap-2">
+                          <span className="text-slate-400 text-xs"><BsCaretRightFill /></span> {c}
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                  {/* HOVER CARD END */}
                 </div>
               ))}
             </div>
@@ -891,18 +1207,93 @@ export default function ResumeApp() {
 
         <section id="section-contact" data-section="contact" className="max-w-2xl mx-auto">
           <ScrollReveal>
-            {/* ADD HOVER CARD */}
             <div className={`hover-card border rounded shadow-2xl overflow-hidden ${darkMode ? 'border-slate-700 bg-slate-950' : 'border-slate-300 bg-white'}`}>
               <div className={`px-4 py-2 border-b flex items-center gap-2 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                 <div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div><div className="ml-4 font-mono text-xs text-slate-500">root@arunburapha:~</div>
               </div>
               <div className="p-8 font-mono">
-                <form onSubmit={(e) => { e.preventDefault(); setFormSubmitted(true); setTimeout(() => setFormSubmitted(false), 3000); }} className="space-y-4">
-                  <div className="flex flex-col"><label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}><BsTerminal /> {t.contactName}</label><input className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`} type="text" value={contactForm.name} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} /></div>
-                  <div className="flex flex-col"><label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}><BsEnvelope /> {t.contactEmail}</label><input className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`} type="email" value={contactForm.email} onChange={e => setContactForm({ ...contactForm, email: e.target.value })} /></div>
-                  <div className="flex flex-col"><label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}><BsCodeSlash /> {t.contactMessage}</label><textarea rows="4" className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`} value={contactForm.message} onChange={e => setContactForm({ ...contactForm, message: e.target.value })}></textarea></div>
-                  <Magnet magnetStrength={30}><button type="submit" className={`w-full py-3 border font-bold flex justify-center items-center gap-2 transition-all ${darkMode ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950' : 'bg-cyan-100 border-cyan-500 text-cyan-800 hover:bg-cyan-500 hover:text-white'}`}>{t.sendMessage} <BsArrowRight /></button></Magnet>
-                  {formSubmitted && <div className={`text-center animate-pulse ${darkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>{t.messageSent}</div>}
+                {/* เพิ่ม ref={formRef} และ onSubmit={sendEmail} */}
+                <form ref={formRef} onSubmit={sendEmail} className="space-y-4">
+
+                  <div className="flex flex-col">
+                    <label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}>
+                      <BsTerminal /> {t.contactName}
+                    </label>
+                    {/* สำคัญ: ต้องเพิ่ม name="user_name" ให้ตรงกับใน EmailJS Template */}
+                    <input
+                      name="user_name"
+                      className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`}
+                      type="text"
+                      value={contactForm.name}
+                      onChange={e => setContactForm({ ...contactForm, name: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* 🍯 HONEYPOT FIELD (คนมองไม่เห็น บอทมองเห็น) */}
+                  <div className="hidden">
+                    <input
+                      name="honey_trap"
+                      type="text"
+                      value={contactForm.honey}
+                      onChange={e => setContactForm({ ...contactForm, honey: e.target.value })}
+                      tabIndex="-1"
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}>
+                      <BsEnvelope /> {t.contactEmail}
+                    </label>
+                    {/* สำคัญ: เพิ่ม name="user_email" */}
+                    <input
+                      name="user_email"
+                      className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`}
+                      type="email"
+                      value={contactForm.email}
+                      onChange={e => setContactForm({ ...contactForm, email: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col">
+                    <label className={`text-xs mb-1 flex items-center gap-2 ${darkMode ? 'text-cyan-600' : 'text-cyan-700'}`}>
+                      <BsCodeSlash /> {t.contactMessage}
+                    </label>
+                    {/* สำคัญ: เพิ่ม name="message" */}
+                    <textarea
+                      name="message"
+                      rows="4"
+                      className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`}
+                      value={contactForm.message}
+                      onChange={e => setContactForm({ ...contactForm, message: e.target.value })}
+                      required
+                    ></textarea>
+                  </div>
+
+                  <Magnet magnetStrength={30}>
+                    <button
+                      type="submit"
+                      disabled={isSending} // ป้องกันกดซ้ำ
+                      className={`w-full py-3 border font-bold flex justify-center items-center gap-2 transition-all 
+                ${isSending ? 'opacity-50 cursor-wait' : ''}
+                ${darkMode ? 'bg-cyan-900/50 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950' : 'bg-cyan-100 border-cyan-500 text-cyan-800 hover:bg-cyan-500 hover:text-white'}`
+                      }
+                    >
+                      {isSending ? (
+                        <>SENDING DATA... <span className="animate-spin">⟳</span></>
+                      ) : (
+                        <>{t.sendMessage} <BsArrowRight /></>
+                      )}
+                    </button>
+                  </Magnet>
+
+                  {formSubmitted && (
+                    <div className={`text-center p-2 rounded border ${darkMode ? 'bg-emerald-900/20 border-emerald-500/50 text-emerald-400' : 'bg-emerald-100 border-emerald-500/50 text-emerald-700'}`}>
+                      ✅ {t.messageSent}
+                    </div>
+                  )}
                 </form>
               </div>
             </div>
@@ -919,13 +1310,16 @@ export default function ResumeApp() {
       {selectedProject && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedProject(null)}>
           <div className={`border w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-lg relative ${darkMode ? 'bg-slate-900 border-cyan-500/50' : 'bg-white border-cyan-500/50'}`} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedProject(null)} className={`absolute top-4 right-4 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+            <button onClick={() => setSelectedProject(null)} className={`absolute top-4 right-4 ${darkMode ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}><BsXLg /></button>
             <img src={selectedProject.image} className={`w-full h-64 object-cover border-b ${darkMode ? 'border-slate-800' : 'border-slate-200'}`} alt="" />
             <div className="p-8">
               <h2 className={`text-3xl font-bold font-mono mb-4 ${darkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>{selectedProject.name}</h2>
               <p className={`leading-relaxed mb-6 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{selectedProject.description}</p>
               <div className="grid grid-cols-2 gap-4">
-                <div><h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.keyHighlights}</h4><ul className={`space-y-1 text-sm ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{selectedProject.highlights.map((h, i) => <li key={i}>+ {h}</li>)}</ul></div>
+                <div><h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.keyHighlights}</h4><ul className={`space-y-1 text-sm ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{selectedProject.highlights.map((h, i) => <li key={i}><li key={i} className="flex items-start gap-2">
+                  <span className="mt-1 text-emerald-500"><BsCheck2 size={14} /></span>
+                  {h}
+                </li> {h}</li>)}</ul></div>
                 <div><h4 className="text-xs font-mono text-slate-500 mb-2 uppercase">{t.impact}</h4><p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{selectedProject.impact}</p></div>
               </div>
             </div>
@@ -938,10 +1332,11 @@ export default function ResumeApp() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setMapQuery(null)}>
           <div className={`border w-full max-w-3xl h-[60vh] rounded-lg relative overflow-hidden flex flex-col ${darkMode ? 'bg-slate-900 border-cyan-500/50' : 'bg-white border-cyan-500/50'}`} onClick={e => e.stopPropagation()}>
             <div className={`flex justify-between items-center p-4 border-b ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-              <h3 className={`text-lg font-mono font-bold ${darkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>LOCATION_DATA</h3>
-              <button onClick={() => setMapQuery(null)} className={`p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 ${darkMode ? 'text-white' : 'text-slate-900'}`}>✕</button>
+              <h3 className={`text-lg font-mono font-bold ${darkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>{t.modalLocationTitle}</h3>
+              <button onClick={() => setMapQuery(null)} className={`p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 ${darkMode ? 'text-white' : 'text-slate-900'}`}><BsXLg /></button>
             </div>
             <div className="w-full h-full relative">
+              {/* FIXED: ใช้ URL มาตรฐานของ Google Maps Embed */}
               <iframe
                 width="100%"
                 height="100%"
