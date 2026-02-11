@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// 1. นำเข้าข้อมูลและเครื่องมือ
+// 1. นำเข้าข้อมูลและเครื่องมือ (Data & Utils)
 import { translations } from './data/translations';
 import { getResumeData } from './data/resumeData';
 import { storageGet, storageSet, STORAGE_KEYS } from './utils/storage';
@@ -27,7 +27,7 @@ import Internship from './components/sections/Internship';
 import Interests from './components/sections/Interests';
 import Contact from './components/sections/Contact';
 
-export default function ResumeApp() {
+export default function App() {
   // --- STATE MANAGEMENT ---
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('about');
@@ -47,9 +47,9 @@ export default function ResumeApp() {
   useEffect(() => { storageSet(STORAGE_KEYS.theme, darkMode ? '1' : '0'); }, [darkMode]);
   useEffect(() => { storageSet(STORAGE_KEYS.lang, language); }, [language]);
 
-  useEffect(() => { 
-    const timer = setTimeout(() => { setLoading(false); }, 2000); 
-    return () => clearTimeout(timer); 
+  useEffect(() => {
+    const timer = setTimeout(() => { setLoading(false); }, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -63,62 +63,63 @@ export default function ResumeApp() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Typing Effect
   useEffect(() => {
     if (loading) return;
-    const rolesData = { 
-      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"], 
-      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"] 
+    const rolesData = {
+      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"],
+      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"]
     };
     const currentRoles = rolesData[language] || rolesData.en;
     let roleIndex = 0; let charIndex = 0; let isDeleting = false; let timer;
-    
+
     const type = () => {
       if (roleIndex >= currentRoles.length) roleIndex = 0;
-      const currentRole = currentRoles[roleIndex]; 
+      const currentRole = currentRoles[roleIndex];
       const prefix = "> ";
-      if (isDeleting) { 
-        setTypedText(prefix + currentRole.substring(0, charIndex)); 
-        charIndex--; 
-      } else { 
-        setTypedText(prefix + currentRole.substring(0, charIndex + 1)); 
-        charIndex++; 
+      if (isDeleting) {
+        setTypedText(prefix + currentRole.substring(0, charIndex));
+        charIndex--;
+      } else {
+        setTypedText(prefix + currentRole.substring(0, charIndex + 1));
+        charIndex++;
       }
-      let speed = 150; 
-      if (isDeleting) speed = 50;
-      if (!isDeleting && charIndex === currentRole.length) { 
-        speed = 4000; isDeleting = true; 
-      } else if (isDeleting && charIndex === 0) { 
-        isDeleting = false; 
-        roleIndex = (roleIndex + 1) % currentRoles.length; 
-        speed = 1000; 
+      let speed = isDeleting ? 50 : 150;
+      if (!isDeleting && charIndex === currentRole.length) {
+        speed = 3000; isDeleting = true;
+      } else if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        roleIndex = (roleIndex + 1) % currentRoles.length;
+        speed = 1000;
       }
       timer = setTimeout(type, speed);
     };
-    type(); 
+    type();
     return () => clearTimeout(timer);
   }, [loading, language]);
 
+  // Section Observer
   useEffect(() => {
     if (loading) return;
     const ids = ['about', 'skills', 'projects', 'education', 'experience', 'internship', 'interests', 'contact'];
     const elements = ids.map((id) => document.getElementById(`section-${id}`)).filter(Boolean);
     if (!elements.length) return;
-    const observer = new IntersectionObserver((entries) => { 
-      const visible = entries.filter((e) => e.isIntersecting); 
-      if (!visible.length) return; 
-      setActiveSection(visible[0].target.getAttribute('data-section')); 
-    }, { threshold: 0.3 });
-    elements.forEach((el) => observer.observe(el)); 
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting);
+      if (!visible.length) return;
+      setActiveSection(visible[0].target.getAttribute('data-section'));
+    }, { threshold: 0.2 });
+    elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [loading, language]);
 
-  const scrollToSection = (id) => { 
-    setActiveSection(id); 
-    const el = document.getElementById(`section-${id}`); 
-    if (el) { 
-      const offset = el.getBoundingClientRect().top + window.scrollY - 80; 
-      window.scrollTo({ top: offset, behavior: 'smooth' }); 
-    } 
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    const el = document.getElementById(`section-${id}`);
+    if (el) {
+      const offset = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: offset, behavior: 'smooth' });
+    }
   };
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -128,101 +129,81 @@ export default function ResumeApp() {
       if (level >= 90) return "Advanced";
       if (level >= 75) return "Upper-Intermediate";
       if (level >= 60) return "Intermediate";
-      if (level >= 40) return "Pre-Intermediate";
       return "Beginner";
-    } else {
-      if (level >= 90) return "เชี่ยวชาญ";
-      if (level >= 75) return "ระดับสูง";
-      if (level >= 60) return "ระดับกลาง";
-      if (level >= 40) return "พื้นฐาน";
-      return "เริ่มต้น";
     }
+    if (level >= 90) return "เชี่ยวชาญ";
+    if (level >= 75) return "ระดับสูง";
+    if (level >= 60) return "ระดับกลาง";
+    return "พื้นฐาน";
   };
 
   if (loading) return <LoadingScreen t={t} />;
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'} overflow-x-hidden`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
-        body { font-family: 'Chakra Petch', sans-serif; }
+        
+        body { font-family: 'Chakra Petch', sans-serif; overflow-x: hidden; width: 100%; }
         .font-mono { font-family: 'JetBrains Mono', 'Chakra Petch', monospace; }
-        .bg-grid-pattern { background-size: 40px 40px; background-image: radial-gradient(circle, ${darkMode ? '#334155' : '#cbd5e1'} 1px, transparent 1px); }
-        .scroll-progress { background: linear-gradient(90deg, #06b6d4, #10b981); }
-        ::-webkit-scrollbar { width: 8px; }
+
+        /* --- ปรับแต่ง Scrollbar หลักให้ผอมลงและสวยงาม --- */
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: ${darkMode ? '#0f172a' : '#f1f5f9'}; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        ::-webkit-scrollbar-thumb { 
+          background: ${darkMode ? '#334155' : '#cbd5e1'}; 
+          border-radius: 10px; 
+        }
+        ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
+        /* --- ซ่อน Scrollbar ของ Navbar แต่ยังเลื่อนได้ --- */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;  /* สำหรับ Internet Explorer/Edge */
+          scrollbar-width: none;     /* สำหรับ Firefox */
+        }
+
+        /* --- ป้องกันบั๊กชื่อหัวข้อภาษาอังกฤษทะลุจอ --- */
+        h1, h2, h3, h4, p, span {
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
+        }
+
+        .bg-grid-pattern { 
+          background-size: 40px 40px; 
+          background-image: radial-gradient(circle, ${darkMode ? '#334155' : '#cbd5e1'} 1px, transparent 1px); 
+        }
+        .scroll-progress { background: linear-gradient(90deg, #06b6d4, #10b981); height: 3px; }
       `}</style>
 
-      {/* --- Global UI Elements --- */}
+      {/* UI Layers */}
       <TacticalCursor darkMode={darkMode} />
       <TechAmbienceBackground darkMode={darkMode} />
-      
+
       <div className="fixed top-0 left-0 h-1 z-[100] scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
-      
-      <SettingsControls 
-        darkMode={darkMode} 
-        setDarkMode={setDarkMode} 
-        language={language} 
-        setLanguage={setLanguage} 
+
+      <SettingsControls
+        darkMode={darkMode} setDarkMode={setDarkMode}
+        language={language} setLanguage={setLanguage}
       />
 
-      {/* --- Main Structure Changes Here --- */}
-      <div className="relative z-10">
-        
-        {/* 1. HERO SECTION (วางก่อน Navbar เพื่อให้เต็มจอแรก) */}
-        <Hero 
-          darkMode={darkMode} 
-          t={t} 
-          typedText={typedText} 
-          scrollToSection={scrollToSection} 
-        />
+      <div className="relative z-10 overflow-x-hidden">
+        {/* ลำดับ Hero -> Navbar -> Content เพื่อให้ Sticky ทำงานถูกต้อง */}
+        <Hero darkMode={darkMode} t={t} typedText={typedText} scrollToSection={scrollToSection} />
 
-        {/* 2. NAVBAR (วางต่อจาก Hero เพื่อให้ Sticky ทำงานถูกต้อง) */}
-        <Navbar 
-          t={t} 
-          darkMode={darkMode} 
-          activeSection={activeSection} 
-          scrollToSection={scrollToSection} 
-        />
+        <Navbar t={t} darkMode={darkMode} activeSection={activeSection} scrollToSection={scrollToSection} />
 
-        {/* 3. CONTENT SECTIONS (วางล่างสุด) */}
-        <div className="max-w-6xl mx-auto px-6 space-y-32 py-16">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 space-y-24 md:space-y-32 py-16">
           <About darkMode={darkMode} t={t} language={language} />
-          
-          <Skills 
-            darkMode={darkMode} 
-            t={t} 
-            resumeData={resumeData} 
-            getSkillLevel={getSkillLevel} 
-          />
-          
-          <Projects 
-            darkMode={darkMode} 
-            t={t} 
-            resumeData={resumeData} 
-            setSelectedProject={setSelectedProject} 
-          />
-          
-          <Education 
-            darkMode={darkMode} 
-            t={t} 
-            resumeData={resumeData} 
-            setMapQuery={setMapQuery} 
-          />
-          
-          <Experience 
-            darkMode={darkMode} 
-            t={t} 
-            resumeData={resumeData} 
-            setMapQuery={setMapQuery} 
-          />
-          
+          <Skills darkMode={darkMode} t={t} resumeData={resumeData} getSkillLevel={getSkillLevel} />
+          <Projects darkMode={darkMode} t={t} resumeData={resumeData} setSelectedProject={setSelectedProject} />
+          <Education darkMode={darkMode} t={t} resumeData={resumeData} setMapQuery={setMapQuery} />
+          <Experience darkMode={darkMode} t={t} resumeData={resumeData} setMapQuery={setMapQuery} />
           <Internship darkMode={darkMode} t={t} />
-          
           <Interests darkMode={darkMode} t={t} />
-          
           <Contact darkMode={darkMode} t={t} />
         </div>
       </div>
@@ -230,21 +211,9 @@ export default function ResumeApp() {
       <Footer t={t} darkMode={darkMode} />
       <ScrollToTop show={showScrollTop} scrollToTop={scrollToTop} />
 
-      {/* --- Modals --- */}
-      <ProjectModal 
-        project={selectedProject} 
-        onClose={() => setSelectedProject(null)} 
-        darkMode={darkMode} 
-        t={t} 
-      />
-      
-      <MapModal 
-        mapQuery={mapQuery} 
-        onClose={() => setMapQuery(null)} 
-        darkMode={darkMode} 
-        t={t} 
-      />
-
+      {/* Modals */}
+      <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} darkMode={darkMode} t={t} />
+      <MapModal mapQuery={mapQuery} onClose={() => setMapQuery(null)} darkMode={darkMode} t={t} />
     </div>
   );
 }
