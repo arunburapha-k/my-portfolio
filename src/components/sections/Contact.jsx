@@ -53,7 +53,7 @@ const Contact = ({ darkMode, t }) => {
                   <BsTerminal /> {t.contactName}
                 </label>
                 <input
-                  name="name"
+                  name="user_name"
                   className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`}
                   type="text"
                   value={contactForm.name}
@@ -79,7 +79,7 @@ const Contact = ({ darkMode, t }) => {
                   <BsEnvelope /> {t.contactEmail}
                 </label>
                 <input
-                  name="email"
+                  name="user_email"
                   className={`border p-2 focus:outline-none ${darkMode ? 'bg-slate-900 border-slate-700 text-emerald-400 focus:border-cyan-500' : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-cyan-500'}`}
                   type="email"
                   value={contactForm.email}
