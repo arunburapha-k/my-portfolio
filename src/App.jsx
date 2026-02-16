@@ -15,6 +15,7 @@ import ScrollToTop from './components/ui/ScrollToTop';
 import Footer from './components/ui/Footer';
 import ProjectModal from './components/ui/ProjectModal';
 import MapModal from './components/ui/MapModal';
+import ImageModal from './components/ui/ImageModal';
 
 // 3. นำเข้า Section Components
 import Hero from './components/sections/Hero';
@@ -38,6 +39,7 @@ export default function App() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [mapQuery, setMapQuery] = useState(null);
   const [typedText, setTypedText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // --- DERIVED DATA ---
   const t = translations[language];
@@ -63,38 +65,38 @@ export default function App() {
   // Typing Effect
   useEffect(() => {
     // ลบเช็ค if (loading) return; ออก
-    const rolesData = { 
-      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"], 
-      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"] 
+    const rolesData = {
+      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"],
+      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"]
     };
     const currentRoles = rolesData[language] || rolesData.en;
     let roleIndex = 0; let charIndex = 0; let isDeleting = false; let timer;
-    
+
     const type = () => {
       if (roleIndex >= currentRoles.length) roleIndex = 0;
-      const currentRole = currentRoles[roleIndex]; 
+      const currentRole = currentRoles[roleIndex];
       const prefix = "> ";
-      if (isDeleting) { 
-        setTypedText(prefix + currentRole.substring(0, charIndex)); 
-        charIndex--; 
-      } else { 
-        setTypedText(prefix + currentRole.substring(0, charIndex + 1)); 
-        charIndex++; 
+      if (isDeleting) {
+        setTypedText(prefix + currentRole.substring(0, charIndex));
+        charIndex--;
+      } else {
+        setTypedText(prefix + currentRole.substring(0, charIndex + 1));
+        charIndex++;
       }
       let speed = isDeleting ? 50 : 150;
-      
-      if (!isDeleting && charIndex === currentRole.length) { 
-        speed = 3000; isDeleting = true; 
-      } 
+
+      if (!isDeleting && charIndex === currentRole.length) {
+        speed = 3000; isDeleting = true;
+      }
       // แก้ไข Logic ให้ลบจนหมดคำก่อนเริ่มคำใหม่ (charIndex === -1) เพื่อความลื่นไหล
-      else if (isDeleting && charIndex === -1) { 
-        isDeleting = false; 
-        roleIndex = (roleIndex + 1) % currentRoles.length; 
-        speed = 1000; 
+      else if (isDeleting && charIndex === -1) {
+        isDeleting = false;
+        roleIndex = (roleIndex + 1) % currentRoles.length;
+        speed = 1000;
       }
       timer = setTimeout(type, speed);
     };
-    type(); 
+    type();
     return () => clearTimeout(timer);
   }, [language]); // ลบ loading ออกจาก dependency array
 
@@ -104,22 +106,22 @@ export default function App() {
     const ids = ['about', 'skills', 'projects', 'education', 'experience', 'internship', 'interests', 'contact'];
     const elements = ids.map((id) => document.getElementById(`section-${id}`)).filter(Boolean);
     if (!elements.length) return;
-    const observer = new IntersectionObserver((entries) => { 
-      const visible = entries.filter((e) => e.isIntersecting); 
-      if (!visible.length) return; 
-      setActiveSection(visible[0].target.getAttribute('data-section')); 
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((e) => e.isIntersecting);
+      if (!visible.length) return;
+      setActiveSection(visible[0].target.getAttribute('data-section'));
     }, { threshold: 0.2 });
-    elements.forEach((el) => observer.observe(el)); 
+    elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [language]); // ลบ loading ออกจาก dependency array
 
-  const scrollToSection = (id) => { 
-    setActiveSection(id); 
-    const el = document.getElementById(`section-${id}`); 
-    if (el) { 
-      const offset = el.getBoundingClientRect().top + window.scrollY - 80; 
-      window.scrollTo({ top: offset, behavior: 'smooth' }); 
-    } 
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    const el = document.getElementById(`section-${id}`);
+    if (el) {
+      const offset = el.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: offset, behavior: 'smooth' });
+    }
   };
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -178,24 +180,24 @@ export default function App() {
       {/* UI Layers */}
       <TacticalCursor darkMode={darkMode} />
       <TechAmbienceBackground darkMode={darkMode} />
-      
+
       <div className="fixed top-0 left-0 h-1 z-[100] scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
-      
-      <SettingsControls 
-        darkMode={darkMode} setDarkMode={setDarkMode} 
-        language={language} setLanguage={setLanguage} 
+
+      <SettingsControls
+        darkMode={darkMode} setDarkMode={setDarkMode}
+        language={language} setLanguage={setLanguage}
       />
 
       <div className="relative z-10">
         <Hero darkMode={darkMode} t={t} typedText={typedText} scrollToSection={scrollToSection} />
-        
+
         <Navbar t={t} darkMode={darkMode} activeSection={activeSection} scrollToSection={scrollToSection} />
 
         <div className="max-w-6xl mx-auto px-4 md:px-6 space-y-24 md:space-y-32 py-16">
           <About darkMode={darkMode} t={t} language={language} />
           <Skills darkMode={darkMode} t={t} resumeData={resumeData} getSkillLevel={getSkillLevel} />
           <Projects darkMode={darkMode} t={t} resumeData={resumeData} setSelectedProject={setSelectedProject} />
-          <Education darkMode={darkMode} t={t} resumeData={resumeData} setMapQuery={setMapQuery} />
+          <Education darkMode={darkMode} t={t} resumeData={resumeData} setMapQuery={setMapQuery} setSelectedImage={setSelectedImage} />
           <Experience darkMode={darkMode} t={t} resumeData={resumeData} setMapQuery={setMapQuery} />
           <Internship darkMode={darkMode} t={t} />
           <Interests darkMode={darkMode} t={t} />
@@ -209,6 +211,11 @@ export default function App() {
       {/* Modals */}
       <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} darkMode={darkMode} t={t} />
       <MapModal mapQuery={mapQuery} onClose={() => setMapQuery(null)} darkMode={darkMode} t={t} />
-    </div>
+      <ImageModal
+        imageSrc={selectedImage}
+        onClose={() => setSelectedImage(null)}
+        darkMode={darkMode}
+      />
+    </div >
   );
 }

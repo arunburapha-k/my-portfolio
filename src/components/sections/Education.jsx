@@ -1,9 +1,10 @@
 import React from 'react';
-import { BsMap, BsCaretRightFill } from 'react-icons/bs';
+import { BsMap, BsCaretRightFill, BsFileEarmarkText } from 'react-icons/bs'; // Import ไอคอนเพิ่มตรงนี้
 import ScrollReveal from '../ui/ScrollReveal';
 import Magnet from '../ui/Magnet';
 
-const Education = ({ darkMode, t, resumeData, setMapQuery }) => {
+
+const Education = ({ darkMode, t, resumeData, setMapQuery, setSelectedImage }) => {
   return (
     <section id="section-education" data-section="education">
       <ScrollReveal>
@@ -24,6 +25,8 @@ const Education = ({ darkMode, t, resumeData, setMapQuery }) => {
                     <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                       {edu.school}
                     </h3>
+
+                    {/* ปุ่ม Location เดิม */}
                     <Magnet magnetStrength={10}>
                       <button
                         onClick={() => setMapQuery(edu.locationQuery)}
@@ -33,6 +36,23 @@ const Education = ({ darkMode, t, resumeData, setMapQuery }) => {
                         <BsMap /> {t.btnPlace}
                       </button>
                     </Magnet>
+
+                    {/* ✅ ปุ่ม Transcript (เพิ่มใหม่) - แสดงเฉพาะเมื่อมีข้อมูล transcript */}
+                    {edu.transcript && (
+                      <Magnet magnetStrength={10}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedImage(edu.transcript); // เรียกใช้ Modal แทนการลิ้งก์
+                          }}
+                          className={`text-xs px-2 py-1 flex items-center gap-1 rounded border transition-all cursor-pointer
+                                  ${darkMode ? 'border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20' : 'border-emerald-600/50 text-emerald-600 hover:bg-emerald-100'}`}
+                        >
+                          <BsFileEarmarkText /> {t.btnTranscript}
+                        </button>
+                      </Magnet>
+                    )}
+
                   </div>
                   <span className={`font-mono text-xs border px-2 py-1 rounded ${darkMode ? 'text-emerald-400 border-emerald-900 bg-emerald-900/20' : 'text-emerald-700 border-emerald-200 bg-emerald-100'}`}>
                     {edu.year}

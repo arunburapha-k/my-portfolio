@@ -1,6 +1,8 @@
 import signLangImg from '../assets/sign-language-ai.png';
 import iotImg from '../assets/iot-lab-monitor.png';
 import voiceImg from '../assets/voice-control-system.png';
+import transcript_bachelor from '../assets/transcript_bachelor.jpg';
+import transcript_diploma from '../assets/transcript_diploma.jpg';
 
 // ฟังก์ชันรับค่าภาษา (language) แล้วส่งข้อมูลกลับมาตามภาษานั้น
 export const getResumeData = (language) => {
@@ -20,20 +22,22 @@ export const getResumeData = (language) => {
     ],
     education: [
       {
-        school: isEn ? "KMUTNB" : "มจพ.",
-        degree: isEn ? "B.Ind.Tech (Continuing)" : "อุตสาหกรรมศาสตรบัณฑิต (ต่อเนื่อง)",
+        school: isEn ? "King Mongkut's University of Technology North Bangkok" : "มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ",
+        degree: isEn ? "Bachelor of Industrial Science (Continuing)" : "อุตสาหกรรมศาสตรบัณฑิต (ต่อเนื่อง)",
         field: isEn ? "Electronic Computer Tech" : "เทคโนโลยีคอมพิวเตอร์อิเล็กทรอนิกส์",
         year: "2024 - 2026",
         courses: ["Computer Programming", "Database Tech", "Web App Dev", "Mobile App Dev", "OOP"],
-        locationQuery: "King Mongkut's University of Technology North Bangkok"
+        locationQuery: "King Mongkut's University of Technology North Bangkok",
+        transcript: transcript_bachelor
       },
       {
-        school: isEn ? "Chanthaburi Tech" : "วท.จันทบุรี",
-        degree: isEn ? "Diploma" : "ปวส.",
+        school: isEn ? "Chanthaburi Technology" : "วิทยาลัยเทคนิคจันทบุรี",
+        degree: isEn ? "Advanced Diploma (ADD)" : "ประกาศนียบัตรชั้นสูง(ปวส.)",
         field: isEn ? "Electronics" : "อิเล็กทรอนิกส์",
         year: "2022 - 2024",
         courses: ["Network Systems", "Programming", "Microcontrollers", "PLC"],
-        locationQuery: "Chanthaburi Technical College"
+        locationQuery: "Chanthaburi Technical College",
+        transcript: transcript_diploma
       }
     ],
     experience: [

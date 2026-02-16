@@ -1,5 +1,6 @@
 export const translations = {
   en: {
+    btnTranscript: "View Transcript",
     availableFor: "SYSTEM: ONLINE / READY FOR INTERNSHIP",
     ctaProjects: "Initialize Projects",
     ctaContact: "Ping Me",
@@ -44,6 +45,7 @@ export const translations = {
     sections: [{ id: 'about', label: 'About' }, { id: 'skills', label: 'Skills' }, { id: 'projects', label: 'Projects' }, { id: 'education', label: 'Education' }, { id: 'experience', label: 'Experience' }, { id: 'internship', label: 'Internship' }, { id: 'interests', label: 'Interests' }, { id: 'contact', label: 'Contact' }]
   },
   th: {
+    btnTranscript: "ดูผลการเรียน",
     availableFor: "สถานะ: ออนไลน์ / พร้อมฝึกงาน",
     ctaProjects: "ดูโปรเจกต์",
     ctaContact: "ติดต่อ",
