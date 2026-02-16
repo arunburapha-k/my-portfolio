@@ -131,7 +131,7 @@ export default function App() {
 
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'} overflow-x-hidden`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
         
@@ -181,7 +181,7 @@ export default function App() {
         language={language} setLanguage={setLanguage}
       />
 
-      <div className="relative z-10 overflow-x-hidden">
+      <div className="relative z-10">
         {/* ลำดับ Hero -> Navbar -> Content เพื่อให้ Sticky ทำงานถูกต้อง */}
         <Hero darkMode={darkMode} t={t} typedText={typedText} scrollToSection={scrollToSection} />
 
