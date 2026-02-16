@@ -1,4 +1,5 @@
-import React from 'react';
+// 1. เพิ่ม useMemo ใน import
+import React, { useMemo } from 'react';
 import { BsTelephone, BsEnvelope, BsCodeSlash, BsTerminal } from 'react-icons/bs';
 import profileImg from '../../assets/profile.png';
 import Magnet from '../ui/Magnet';
@@ -7,9 +8,14 @@ import DecryptedText from '../ui/DecryptedText';
 import PixelBlast from '../ui/PixelBlast';
 
 const Hero = ({ darkMode, t, typedText, scrollToSection }) => {
-  const pixelColors = darkMode
-    ? ['#22d3ee', '#34d399', '#ffffff', '#0ea5e9']
-    : ['#0891b2', '#059669', '#64748b', '#0369a1'];
+  
+  // 2. ใช้ useMemo ครอบตัวแปร pixelColors ไว้
+  // ผลลัพธ์: ตัวแปรนี้จะไม่ถูกสร้างใหม่ตอนพิมพ์ตัวหนังสือ ทำให้ PixelBlast ไม่รีเซ็ท
+  const pixelColors = useMemo(() => {
+    return darkMode
+      ? ['#22d3ee', '#34d399', '#ffffff', '#0ea5e9']
+      : ['#0891b2', '#059669', '#64748b', '#0369a1'];
+  }, [darkMode]); // จะเปลี่ยนค่าก็ต่อเมื่อ darkMode เปลี่ยนเท่านั้น
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden py-20 md:py-0">
@@ -18,17 +24,15 @@ const Hero = ({ darkMode, t, typedText, scrollToSection }) => {
         <PixelBlast colors={pixelColors} gap={20} speed={0.03} />
       </div>
 
-      {/* --- จุดที่แก้ไข: เปลี่ยนจาก grid เป็น flex และจัดการลำดับการแสดงผล --- */}
+      {/* --- ส่วนเนื้อหาเหมือนเดิม --- */}
       <div className="relative z-10 max-w-6xl mx-auto px-6 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
 
-        {/* ส่วนข้อความ (Text Content) - ให้เป็น order-2 ในมือถือ และ order-1 ในคอม */}
         <div className="order-2 md:order-1 flex-1 text-center md:text-left">
           <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] md:text-xs font-mono mb-6 backdrop-blur-sm ${darkMode ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-emerald-600/30 bg-emerald-100'}`}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <ShinyText text={t.availableFor} className={darkMode ? 'text-emerald-400' : 'text-emerald-700'} />
           </div>
 
-          {/* --- ส่วนของชื่อ (Name) --- */}
           <h1 className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-4 tracking-tight leading-tight break-words max-w-[90vw] mx-auto md:mx-0">
             <span className={`font-mono text-xs md:text-2xl block mb-2 ${darkMode ? 'text-slate-500' : 'text-slate-600'}`}>
               {t.aboutTitle}
@@ -36,12 +40,10 @@ const Hero = ({ darkMode, t, typedText, scrollToSection }) => {
             <DecryptedText text={t.name} className={darkMode ? 'text-white' : 'text-slate-900'} />
           </h1>
 
-          {/* --- ส่วนของตำแหน่งงาน (Title) --- */}
           <p className={`text-sm sm:text-lg md:text-2xl font-mono mb-6 leading-relaxed ${darkMode ? 'text-cyan-500' : 'text-cyan-700'} max-w-[85vw] mx-auto md:mx-0`}>
             {t.title}
           </p>
 
-          {/* ข้อมูลติดต่อ */}
           <div className={`flex flex-col md:flex-row justify-center md:justify-start gap-3 md:gap-6 mb-8 font-mono text-xs md:text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
             <a href="tel:0624645582" className="flex items-center justify-center md:justify-start gap-2 hover:text-emerald-500 transition-colors">
               <span className={`p-1.5 rounded-full ${darkMode ? 'bg-slate-800' : 'bg-slate-200'}`}>
@@ -75,15 +77,11 @@ const Hero = ({ darkMode, t, typedText, scrollToSection }) => {
           </div>
         </div>
 
-        {/* ส่วนรูปโปรไฟล์ (Profile Image) - ให้เป็น order-1 ในมือถือ และ order-2 ในคอม */}
         <div className="order-1 md:order-2 flex-1 flex justify-center items-center">
           <div className="relative">
-            {/* Animated Aura */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] md:w-[500px] md:h-[500px] pointer-events-none">
               <div className={`absolute inset-0 border-2 border-dashed rounded-full animate-[spin_30s_linear_infinite] ${darkMode ? 'border-cyan-500/30' : 'border-cyan-600/20'}`}></div>
             </div>
-
-            {/* Image Container */}
             <div className="relative z-10 w-[220px] md:w-[400px] h-[300px] md:h-[500px] flex justify-center items-end">
               <img
                 src={profileImg}

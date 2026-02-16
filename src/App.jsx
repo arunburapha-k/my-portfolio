@@ -8,6 +8,7 @@ import { storageGet, storageSet, STORAGE_KEYS } from './utils/storage';
 // 2. นำเข้า UI Components
 import TacticalCursor from './components/ui/TacticalCursor';
 import TechAmbienceBackground from './components/ui/TechAmbienceBackground';
+// ลบ import LoadingScreen ออกแล้ว
 import Navbar from './components/ui/Navbar';
 import SettingsControls from './components/ui/SettingsControls';
 import ScrollToTop from './components/ui/ScrollToTop';
@@ -28,6 +29,7 @@ import Contact from './components/sections/Contact';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
+  // ลบ state loading ออก
   const [activeSection, setActiveSection] = useState('about');
   const [darkMode, setDarkMode] = useState(() => storageGet(STORAGE_KEYS.theme, true));
   const [language, setLanguage] = useState(() => storageGet(STORAGE_KEYS.lang, 'en'));
@@ -45,6 +47,7 @@ export default function App() {
   useEffect(() => { storageSet(STORAGE_KEYS.theme, darkMode ? '1' : '0'); }, [darkMode]);
   useEffect(() => { storageSet(STORAGE_KEYS.lang, language); }, [language]);
 
+  // ลบ useEffect สำหรับ loading timer ออก
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,59 +62,64 @@ export default function App() {
 
   // Typing Effect
   useEffect(() => {
-    const rolesData = {
-      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"],
-      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"]
+    // ลบเช็ค if (loading) return; ออก
+    const rolesData = { 
+      en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"], 
+      th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"] 
     };
     const currentRoles = rolesData[language] || rolesData.en;
     let roleIndex = 0; let charIndex = 0; let isDeleting = false; let timer;
-
+    
     const type = () => {
       if (roleIndex >= currentRoles.length) roleIndex = 0;
-      const currentRole = currentRoles[roleIndex];
+      const currentRole = currentRoles[roleIndex]; 
       const prefix = "> ";
-      if (isDeleting) {
-        setTypedText(prefix + currentRole.substring(0, charIndex));
-        charIndex--;
-      } else {
-        setTypedText(prefix + currentRole.substring(0, charIndex + 1));
-        charIndex++;
+      if (isDeleting) { 
+        setTypedText(prefix + currentRole.substring(0, charIndex)); 
+        charIndex--; 
+      } else { 
+        setTypedText(prefix + currentRole.substring(0, charIndex + 1)); 
+        charIndex++; 
       }
       let speed = isDeleting ? 50 : 150;
-      if (!isDeleting && charIndex === currentRole.length) {
-        speed = 3000; isDeleting = true;
-      } else if (isDeleting && charIndex === 0) {
-        isDeleting = false;
-        roleIndex = (roleIndex + 1) % currentRoles.length;
-        speed = 1000;
+      
+      if (!isDeleting && charIndex === currentRole.length) { 
+        speed = 3000; isDeleting = true; 
+      } 
+      // แก้ไข Logic ให้ลบจนหมดคำก่อนเริ่มคำใหม่ (charIndex === -1) เพื่อความลื่นไหล
+      else if (isDeleting && charIndex === -1) { 
+        isDeleting = false; 
+        roleIndex = (roleIndex + 1) % currentRoles.length; 
+        speed = 1000; 
       }
       timer = setTimeout(type, speed);
     };
-    type();
+    type(); 
     return () => clearTimeout(timer);
-  }, [language]);
+  }, [language]); // ลบ loading ออกจาก dependency array
 
   // Section Observer
   useEffect(() => {
+    // ลบเช็ค if (loading) return; ออก
     const ids = ['about', 'skills', 'projects', 'education', 'experience', 'internship', 'interests', 'contact'];
     const elements = ids.map((id) => document.getElementById(`section-${id}`)).filter(Boolean);
     if (!elements.length) return;
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries.filter((e) => e.isIntersecting);
-      if (!visible.length) return;
-      setActiveSection(visible[0].target.getAttribute('data-section'));
+    const observer = new IntersectionObserver((entries) => { 
+      const visible = entries.filter((e) => e.isIntersecting); 
+      if (!visible.length) return; 
+      setActiveSection(visible[0].target.getAttribute('data-section')); 
     }, { threshold: 0.2 });
-    elements.forEach((el) => observer.observe(el));
+    elements.forEach((el) => observer.observe(el)); 
     return () => observer.disconnect();
-  }, [language]);
+  }, [language]); // ลบ loading ออกจาก dependency array
 
-  const scrollToSection = (id) => {
-    setActiveSection(id);
-    const el = document.getElementById(`section-${id}`);
-    if (el) {
-      const offset = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: offset, behavior: 'smooth' });
-    }
+  const scrollToSection = (id) => { 
+    setActiveSection(id); 
+    const el = document.getElementById(`section-${id}`); 
+    if (el) { 
+      const offset = el.getBoundingClientRect().top + window.scrollY - 80; 
+      window.scrollTo({ top: offset, behavior: 'smooth' }); 
+    } 
   };
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -129,8 +137,10 @@ export default function App() {
     return "พื้นฐาน";
   };
 
+  // ลบส่วน if (loading) return <LoadingScreen ... />; ออก
 
   return (
+    // ลบ overflow-x-hidden ที่ div หลักออก เพื่อให้ sticky navbar ทำงานได้
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -138,8 +148,8 @@ export default function App() {
         body { font-family: 'Chakra Petch', sans-serif; overflow-x: hidden; width: 100%; }
         .font-mono { font-family: 'JetBrains Mono', 'Chakra Petch', monospace; }
 
-        /* --- ปรับแต่ง Scrollbar หลักให้ผอมลงและสวยงาม --- */
-        ::-webkit-scrollbar { width: 4px; }
+        /* --- ปรับแต่ง Scrollbar --- */
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: ${darkMode ? '#0f172a' : '#f1f5f9'}; }
         ::-webkit-scrollbar-thumb { 
           background: ${darkMode ? '#334155' : '#cbd5e1'}; 
@@ -147,14 +157,9 @@ export default function App() {
         }
         ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
 
-        /* --- ซ่อน Scrollbar ของ Navbar แต่ยังเลื่อนได้ --- */
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;  /* สำหรับ Internet Explorer/Edge */
-          scrollbar-width: none;     /* สำหรับ Firefox */
-        }
+        /* --- ซ่อน Scrollbar ของ Navbar --- */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* --- ป้องกันบั๊กชื่อหัวข้อภาษาอังกฤษทะลุจอ --- */
         h1, h2, h3, h4, p, span {
@@ -173,18 +178,17 @@ export default function App() {
       {/* UI Layers */}
       <TacticalCursor darkMode={darkMode} />
       <TechAmbienceBackground darkMode={darkMode} />
-
+      
       <div className="fixed top-0 left-0 h-1 z-[100] scroll-progress" style={{ width: `${scrollProgress}%` }}></div>
-
-      <SettingsControls
-        darkMode={darkMode} setDarkMode={setDarkMode}
-        language={language} setLanguage={setLanguage}
+      
+      <SettingsControls 
+        darkMode={darkMode} setDarkMode={setDarkMode} 
+        language={language} setLanguage={setLanguage} 
       />
 
       <div className="relative z-10">
-        {/* ลำดับ Hero -> Navbar -> Content เพื่อให้ Sticky ทำงานถูกต้อง */}
         <Hero darkMode={darkMode} t={t} typedText={typedText} scrollToSection={scrollToSection} />
-
+        
         <Navbar t={t} darkMode={darkMode} activeSection={activeSection} scrollToSection={scrollToSection} />
 
         <div className="max-w-6xl mx-auto px-4 md:px-6 space-y-24 md:space-y-32 py-16">
