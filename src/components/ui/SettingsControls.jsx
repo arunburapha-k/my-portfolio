@@ -4,7 +4,7 @@ import Magnet from './Magnet';
 
 const SettingsControls = ({ darkMode, setDarkMode, language, setLanguage }) => {
   return (
-    <div className="fixed top-6 right-6 z-50 flex gap-3">
+    <div className="absolute top-6 right-6 z-50 flex gap-3">
       {/* ปุ่มเปลี่ยนภาษา */}
       <Magnet>
         <button
