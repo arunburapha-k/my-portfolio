@@ -8,7 +8,6 @@ import { storageGet, storageSet, STORAGE_KEYS } from './utils/storage';
 // 2. นำเข้า UI Components
 import TacticalCursor from './components/ui/TacticalCursor';
 import TechAmbienceBackground from './components/ui/TechAmbienceBackground';
-import LoadingScreen from './components/ui/LoadingScreen';
 import Navbar from './components/ui/Navbar';
 import SettingsControls from './components/ui/SettingsControls';
 import ScrollToTop from './components/ui/ScrollToTop';
@@ -29,7 +28,6 @@ import Contact from './components/sections/Contact';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
-  const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('about');
   const [darkMode, setDarkMode] = useState(() => storageGet(STORAGE_KEYS.theme, true));
   const [language, setLanguage] = useState(() => storageGet(STORAGE_KEYS.lang, 'en'));
@@ -47,10 +45,6 @@ export default function App() {
   useEffect(() => { storageSet(STORAGE_KEYS.theme, darkMode ? '1' : '0'); }, [darkMode]);
   useEffect(() => { storageSet(STORAGE_KEYS.lang, language); }, [language]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => { setLoading(false); }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,7 +59,6 @@ export default function App() {
 
   // Typing Effect
   useEffect(() => {
-    if (loading) return;
     const rolesData = {
       en: ["AI Engineer", "Software Engineer", "Backend Developer", "DevOps", "Frontend Developer"],
       th: ["วิศวกร AI", "วิศวกรซอฟต์แวร์", "นักพัฒนา Backend", "DevOps", "นักพัฒนา Frontend"]
@@ -96,11 +89,10 @@ export default function App() {
     };
     type();
     return () => clearTimeout(timer);
-  }, [loading, language]);
+  }, [language]);
 
   // Section Observer
   useEffect(() => {
-    if (loading) return;
     const ids = ['about', 'skills', 'projects', 'education', 'experience', 'internship', 'interests', 'contact'];
     const elements = ids.map((id) => document.getElementById(`section-${id}`)).filter(Boolean);
     if (!elements.length) return;
@@ -111,7 +103,7 @@ export default function App() {
     }, { threshold: 0.2 });
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [loading, language]);
+  }, [language]);
 
   const scrollToSection = (id) => {
     setActiveSection(id);
@@ -137,7 +129,6 @@ export default function App() {
     return "พื้นฐาน";
   };
 
-  if (loading) return <LoadingScreen t={t} />;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-900'} overflow-x-hidden`}>
